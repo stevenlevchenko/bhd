@@ -1,11 +1,11 @@
-<!-- /mnt/data/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Blackhawk Data – Office Dashboard (Autoplay)</title>
+<title>Blackhawk Data – Office Dashboard (Autoplay Fixed)</title>
 <link rel="preconnect" href="https://www.youtube.com" />
+<link rel="preconnect" href="https://www.youtube-nocookie.com" />
 <link rel="preconnect" href="https://i.ytimg.com" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -47,31 +47,15 @@
   body[data-theme="light"] .tile{box-shadow:0 8px 28px rgba(10,30,60,.06)}
   .tile .content{padding:12px}
   .muted{color:var(--muted)}
-  .subway-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-  .route{border:1px dashed var(--border);border-radius:12px;padding:12px;background:rgba(255,255,255,.02);display:flex;flex-direction:column;gap:10px}
-  .route h3{margin:0;font-size:14px}
-  .eta{display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
-  .chip{padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--chipb);background:var(--chip);color:#5b6f8f}
-  body[data-theme="light"] .chip{color:#31435c}
-  .eta .mins{font-weight:700}.eta.good .mins{color:var(--good)}.eta.warn .mins{color:var(--warn)}.eta.bad .mins{color:var(--bad)}
-  .btn{align-self:flex-start;border:1px solid var(--border);background:#0d1424;color:var(--text);padding:8px 10px;border-radius:10px;font-size:12px;cursor:pointer}
-  .btn:hover{border-color:#2a3a6b}
-  body[data-theme="light"] .btn{background:#f2f6ff}
   .cams-grid{display:grid;gap:14px;grid-template-columns:repeat(12,1fr)}
   .cam{grid-column:span 12;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#0c131c;display:flex;flex-direction:column}
   body[data-theme="light"] .cam{background:#ffffff}
   @media (min-width:700px){.cam{grid-column:span 6}}
   @media (min-width:1200px){.cam{grid-column:span 4}}
-  .ytwrap,.windywrap,.pagewrap,.snapwrap{position:relative;width:100%;padding-top:56.25%;background:#000}
-  .ytwrap iframe,.pagewrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
-  .snapwrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;background:#000}
-  .snapwrap .stamp{position:absolute;left:8px;bottom:8px;font-size:12px;padding:6px 8px;border-radius:10px;border:1px solid var(--border);
-                   background:rgba(10,15,26,.6);backdrop-filter:blur(6px)}
-  body[data-theme="light"] .snapwrap .stamp{background:rgba(255,255,255,.65)}
-  .windywrap .slot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-  .windywrap a[name="windy-webcam-timelapse-player"]{display:inline-block;color:#1a4ea3;font-size:13px;text-decoration:underline}
-  .cam .meta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#0b1624;border-top:1px solid var(--border)}
-  body[data-theme="light"] .cam .meta{background:#f5f8ff}
+  .media{position:relative;width:100%;padding-top:56.25%;background:#000}
+  .media iframe,.media img{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}
+  .meta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#0b1624;border-top:1px solid var(--border)}
+  body[data-theme="light"] .meta{background:#f5f8ff}
   .name{font-weight:700;font-size:14px}
   .city{font-size:12px;color:#a0b2cf}
   body[data-theme="light"] .city{color:#456088}
@@ -98,19 +82,11 @@
 
   <main>
     <div class="grid">
-      <section class="tile" id="subway">
-        <h2>Subway Travel Times – from 34 St–Penn Station</h2>
-        <div class="content">
-          <p class="muted" style="margin-top:0">Quick ETAs by time-of-day. Click to open live options in Google Maps.</p>
-          <div class="subway-list" id="subwayList"></div>
-        </div>
-      </section>
-
       <section class="tile" id="engineer-cams">
-        <h2>Engineer Weather Cams</h2>
+        <h2>Engineer Weather Cams – Autoplay</h2>
         <div class="content">
           <div class="cams-grid" id="camsGrid"></div>
-          <p class="muted" style="margin-top:10px">Autoplay is forced (muted). Use Alternate/Open if a cam stalls.</p>
+          <p class="muted" style="margin-top:10px">Muted by default for autoplay. Click anywhere if a browser requires a user gesture.</p>
         </div>
       </section>
 
@@ -167,174 +143,131 @@
   }
   tick();
 
-  // Subway (heuristic ETAs)
-  const penn=encodeURIComponent('34 St–Penn Station, New York, NY');
-  const routes=[
-    {name:'Grand Central–42 St',addr:'Grand Central Terminal, NYC',base:[9,12],peak:[11,16]},
-    {name:'Times Sq–42 St',addr:'Times Square, NYC',base:[5,7],peak:[6,9]},
-    {name:'Fulton St (FiDi)',addr:'Fulton St Station, NYC',base:[14,20],peak:[18,26]},
-    {name:'Atlantic Av–Barclays (Bklyn)',addr:'Barclays Center, Brooklyn',base:[22,30],peak:[28,38]},
-    {name:'Jamaica Center (Queens)',addr:'Jamaica Center–Parsons/Archer Station',base:[38,50],peak:[45,60]}
-  ];
-  function isPeak(dt){const z=new Date(dt.toLocaleString('en-US',{timeZone:'America/New_York'}));const d=z.getDay(),h=z.getHours(),m=z.getMinutes(),t=h+m/60;return d>=1&&d<=5&&((t>=7&&t<10)||(t>=16&&t<19));}
-  function etaClass(mins){if(mins[1]<=15)return'good';if(mins[1]<=35)return'warn';return'bad';}
-  function renderETAs(){const peak=isPeak(new Date());const list=document.getElementById('subwayList');list.innerHTML='';routes.forEach(r=>{const span=peak?r.peak:r.base;const cls=etaClass(span);const url=`https://www.google.com/maps/dir/?api=1&origin=${penn}&destination=${encodeURIComponent(r.addr)}&travelmode=transit`;const el=document.createElement('div');el.className='route';el.innerHTML=`<h3>${r.name}</h3><div class="eta ${cls}"><span class="chip">${peak?'Peak':'Off-peak'}</span> <span class="mins">${span[0]}–${span[1]} min</span></div><div class="muted">Open for live options & exact ETAs.</div><a class="btn" target="_blank" href="${url}">Open route</a>`;list.appendChild(el);});}
-  renderETAs(); setInterval(renderETAs,5*60*1000);
+  // ---- YouTube robust autoplay manager ----
+  const players = []; // for video-based embeds (YT.Player instances)
+  const channelIframes = []; // for channel live_stream embeds (DOM iframes)
+  let YT_READY = false;
 
-  // ---- YouTube helpers ----
   function ytIdFromUrl(u){
     try{
       const url = new URL(u);
       if(url.hostname.includes('youtube') || url.hostname.includes('youtu.be')){
         if(url.pathname.startsWith('/watch')) return url.searchParams.get('v');
         const m = url.pathname.match(/\/embed\/([A-Za-z0-9_\-]+)/); if(m) return m[1];
-        const s = url.pathname.split('/'); return s[s.length-1];
+        if(url.hostname==='youtu.be'){ return url.pathname.slice(1); }
+        const s = url.searchParams.get('v'); if(s) return s;
       }
     }catch{}
     return null;
   }
 
-  let YT_API_READY = false;
-  window.onYouTubeIframeAPIReady = function(){ YT_API_READY = true; startAllYouTube(); };
+  // Load IFrame API
+  window.onYouTubeIframeAPIReady = function(){ YT_READY = true; startAll(); };
   (function(){ const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api'; s.async=true; document.head.appendChild(s); })();
 
-  const ytMounts = []; // {slot, id, hostStd, attempts, mode:'video'|'channel', channelId?}
-
-  function createYT(slot, idOrChannel, hostStd=true, mode='video'){
-    slot.innerHTML = '';
-    const div = document.createElement('div');
-    const pid = 'yt_'+Math.random().toString(36).slice(2);
-    div.id = pid;
-    slot.appendChild(div);
-
-    // When binding to a channel, let the API create the iframe then nudge autoplay.
-    const playerVarsBase = { autoplay: 1, mute: 1, playsinline: 1, rel: 0, modestbranding: 1, fs: 1, iv_load_policy: 3, enablejsapi: 1 };
-    const opts = {
-      host: hostStd ? 'https://www.youtube.com' : 'https://www.youtube-nocookie.com',
-      playerVars: playerVarsBase,
+  function buildVideoPlayer(el, videoId, useNoCookie=false){
+    const host = useNoCookie ? 'https://www.youtube-nocookie.com' : 'https://www.youtube.com';
+    const p = new YT.Player(el, {
+      host,
+      videoId,
+      playerVars: {
+        autoplay: 1, mute: 1, playsinline: 1, rel: 0, controls: 1,
+        modestbranding: 1, fs: 1, iv_load_policy: 3
+      },
       events: {
         onReady: (e)=>{ try{ e.target.mute(); e.target.playVideo(); }catch{} },
-        onError: ()=>{
-          const m = ytMounts.find(x=>x.slot===slot);
-          if(m && m.attempts<2){
-            m.attempts++;
-            createYT(slot, idOrChannel, !hostStd, mode);
+        onStateChange: (e)=>{
+          if(e.data === YT.PlayerState.UNSTARTED || e.data === YT.PlayerState.PAUSED){
+            try{ e.target.playVideo(); }catch{}
+          }
+        },
+        onError: (_)=>{
+          // Swap host once
+          const cur = p.getIframe()?.src || '';
+          if(cur.includes('youtube.com') && !cur.includes('youtube-nocookie.com')){
+            const parent = p.getIframe().parentElement;
+            parent.innerHTML = '';
+            const div = document.createElement('div'); parent.appendChild(div);
+            setTimeout(()=>buildVideoPlayer(div, videoId, true), 50);
           }
         }
       }
+    });
+    players.push(p);
+    // Extra nudges
+    setTimeout(()=>{ try{ p.mute(); p.playVideo(); }catch{} }, 400);
+    setInterval(()=>{ try{ if(p.getPlayerState && p.getPlayerState() !== YT.PlayerState.PLAYING){ p.playVideo(); } }catch{} }, 5000);
+  }
+
+  function buildChannelIframe(slot, channelId, useNoCookie=false){
+    const host = useNoCookie ? 'https://www.youtube-nocookie.com' : 'https://www.youtube.com';
+    const ifr = document.createElement('iframe');
+    ifr.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+    ifr.setAttribute('allowfullscreen', '');
+    ifr.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+    ifr.setAttribute('loading', 'lazy');
+    ifr.src = `${host}/embed/live_stream?channel=${encodeURIComponent(channelId)}&autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1`;
+    ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;display:block';
+    slot.innerHTML = ''; slot.appendChild(ifr);
+    const entry = { iframe: ifr, channelId, useNoCookie };
+    channelIframes.push(entry);
+    // Try to kick playback repeatedly
+    const nudge = ()=>{
+      try{
+        ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'mute',args:[]}), '*');
+        ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:[]}), '*');
+      }catch{}
     };
-
-    if(mode === 'video'){
-      opts.videoId = idOrChannel;
-    }else{
-      // Channel "always-live" embed
-      opts.playerVars = {...playerVarsBase, listType:'playlist'};
-      // Inject an iframe manually pointing to live_stream, then let API grab it.
-      const ifr = document.createElement('iframe');
-      ifr.allow = 'autoplay; encrypted-media; picture-in-picture';
-      ifr.referrerPolicy = 'no-referrer-when-downgrade';
-      ifr.loading = 'lazy';
-      ifr.src = `${hostStd ? 'https://www.youtube.com' : 'https://www.youtube-nocookie.com'}/embed/live_stream?channel=${encodeURIComponent(idOrChannel)}&autoplay=1&mute=1&playsinline=1`;
-      ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;display:block';
-      slot.innerHTML = '';
-      slot.appendChild(ifr);
-      // Also nudge via postMessage
-      setTimeout(()=>{
+    setTimeout(nudge, 300);
+    const interval = setInterval(nudge, 5000);
+    // Swap host once if loads but stays blocked
+    setTimeout(()=>{
+      if(!entry.useNoCookie){
         try{
-          ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'mute',args:[]}), '*');
-          ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:[]}), '*');
+          const src = ifr.src;
+          if(src.includes('youtube.com')){
+            entry.useNoCookie = true;
+            buildChannelIframe(slot, channelId, true);
+          }
         }catch{}
-      }, 600);
-    }
-
-    try{ if(mode==='video') new YT.Player(pid, opts); }catch{
-      setTimeout(()=>{ if(YT_API_READY && mode==='video') try{ new YT.Player(pid, opts); }catch{} }, 120);
-    }
-
-    // Extra nudge
-    setTimeout(()=>{
-      try{
-        const iframe = slot.querySelector('iframe');
-        iframe?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'mute',args:[]}), '*');
-        iframe?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:[]}), '*');
-      }catch{}
-    }, 600);
-
-    // Watchdog
-    setTimeout(()=>{
-      const m = ytMounts.find(x=>x.slot===slot);
-      if(m && m.attempts<2){
-        m.attempts++;
-        createYT(slot, idOrChannel, !hostStd, mode);
       }
-    }, 2500);
+      clearInterval(interval);
+    }, 15000);
   }
 
-  function startAllYouTube(){
-    ytMounts.forEach(m => createYT(m.slot, m.mode==='channel' ? m.channelId : m.id, m.hostStd, m.mode));
-  }
-
-  // ---- Snapshot helpers ----
-  function toETString(d){
-    try{
-      return new Intl.DateTimeFormat('en-US',{
-        timeZone:'America/New_York',hour12:false,
-        year:'numeric',month:'2-digit',day:'2-digit',
-        hour:'2-digit',minute:'2-digit',second:'2-digit'
-      }).format(d) + ' ET';
-    }catch{ return d.toISOString(); }
-  }
-  async function tryLastModified(url){
-    try{
-      const res = await fetch(url, { method:'HEAD', cache:'no-store' });
-      const lm = res.headers.get('Last-Modified');
-      if(lm){ const dt = new Date(lm); if(!isNaN(dt)) return dt; }
-    }catch{}
-    return null;
-  }
-  function scheduleRefresh(imgEl, baseUrl, minSec, maxSec, stampEl){
-    async function doRefresh(){
-      const bust = Date.now();
-      const full = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 't=' + bust;
-      let whenLabel = null;
+  function startAll(){
+    // Kick any existing refs
+    players.forEach(p=>{ try{ p.mute(); p.playVideo(); }catch{} });
+    channelIframes.forEach(({iframe})=>{
       try{
-        const dt = await tryLastModified(baseUrl);
-        if(dt){ whenLabel = toETString(dt) + ' (server)'; }
+        iframe.contentWindow?.postMessage(JSON.stringify({event:'command',func:'mute',args:[]}), '*');
+        iframe.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:[]}), '*');
       }catch{}
-      imgEl.onload = () => {
-        if(!whenLabel){ whenLabel = toETString(new Date()) + ' (local)'; }
-        if(stampEl){ stampEl.textContent = 'Updated: ' + whenLabel; }
-      };
-      imgEl.src = full;
-      const delay = (minSec*1000) + Math.random() * ((maxSec-minSec)*1000);
-      setTimeout(doRefresh, Math.round(delay));
-    }
-    doRefresh();
+    });
   }
 
-  // ---- Cameras ----
-  // NOTE: For "always-live" behavior on YouTube, prefer ytChannel over a one-off video URL.
+  // Global gesture => kickstart
+  ['click','keydown','touchstart'].forEach(ev=>{
+    window.addEventListener(ev, ()=>{ startAll(); }, { once:false, passive:true });
+  });
+
+  // ---- Cameras config ----
+  // Prefer ytChannel for persistent live streams. Use url for one-off IDs.
   const cams = [
     { who:'Rafael Caballero', kind:'youtube', url:'https://www.youtube.com/watch?v=xR8_Es3pMss', city:'Roanoke (near Winchester)', state:'VA' },
     { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
     { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
-    { who:'Virag Doshi',      kind:'windy',   windy:{ id:'1662455177', play:'day', loop:'0', auto:'1', fs:'0', interactive:'1', title:'Kopra Village' }, city:'Morbi (regional Gujarat)', state:'India', note:'Camera feed is in Mumbai' },
-    { who:'Jacob Thatcher',   kind:'windy',   windy:{ id:'1595185933', play:'day', loop:'0', auto:'1', fs:'0', interactive:'1', title:'Oak Ridge › North: Pilot Knob' }, city:'Knoxville (regional)', state:'TN' },
 
-    // Nathan: if you have the channel ID, use ytChannel to avoid "recording not available" errors on ended live events.
-    // Example placeholder below; replace 'UCxxxxxxxxxxxxxxxxxxxxxx' with the correct channel ID when known.
-    // If you prefer to keep a specific video URL, leave ytChannel undefined and keep url.
-{ who:'Nathan Brann', kind:'youtube',
-  // keep url as a fallback if you want, but channel is the key
-  ytChannel:'UCQc7Ol2itgbnMXPjZmPdRRQ',
-  url:'https://www.youtube.com/@apreslin/live',
-  city:'Cincinnati', state:'OH' },
+    // Nathan: channel-based always-live (Cincy skyline)
+    { who:'Nathan Brann',     kind:'youtube', ytChannel:'UCQc7Ol2itgbnMXPjZmPdRRQ', url:'https://www.youtube.com/@apreslin/live', city:'Cincinnati', state:'OH' },
 
     { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
     { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
     { who:'Steve Luton',      kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' },
-    { who:'Dallas Munday',    kind:'snapshot+stamp', url:'https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Stony_Brook_at_Princeton/NJ_Stony_Brook_at_Princeton_newest.jpg', city:'Princeton (Stony Brook)', state:'NJ', minSec:15, maxSec:30 },
-    { who:'Steven Levchenko', kind:'snapshot+stamp', url:'https://map.eye-n-sky.net/webcam/Caldwell/Caldwell-East.jpg', city:'Caldwell (near Star/Boise area)', state:'ID', minSec:15, maxSec:30 },
+
+    // Windy examples (autoplay controlled by their script)
+    { who:'Virag Doshi',      kind:'windy',   windy:{ id:'1662455177', play:'day', loop:'0', auto:'1', fs:'0', interactive:'1', title:'Kopra Village' }, city:'Morbi (regional Gujarat)', state:'India', note:'Camera feed is in Mumbai' },
+    { who:'Jacob Thatcher',   kind:'windy',   windy:{ id:'1595185933', play:'day', loop:'0', auto:'1', fs:'0', interactive:'1', title:'Oak Ridge › North: Pilot Knob' }, city:'Knoxville (regional)', state:'TN' }
   ];
 
   const grid = document.getElementById('camsGrid');
@@ -349,111 +282,93 @@
     document.body.appendChild(s);
   }
 
-  cams.forEach(e => {
+  function addYouTubeCard(cfg){
     const card = document.createElement('article'); card.className='cam';
+    const wrap = document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
 
-    if(e.kind === 'youtube'){
-      const wrap = document.createElement('div'); wrap.className='ytwrap';
-      card.appendChild(wrap);
+    const actions = document.createElement('div'); actions.className='actions';
 
-      const actions = document.createElement('div'); actions.className='actions';
-      const openSrc = document.createElement('a'); openSrc.className='tiny'; openSrc.target='_blank'; openSrc.rel='noopener';
-
-      if(e.ytChannel){
-        // Channel "always-live"
-        ytMounts.push({slot:wrap, id:null, hostStd:true, attempts:0, mode:'channel', channelId:e.ytChannel});
-        openSrc.href=`https://www.youtube.com/channel/${encodeURIComponent(e.ytChannel)}/live`;
-        openSrc.textContent='Open channel live';
-        const alt = document.createElement('button'); alt.className='tiny'; alt.textContent='Alternate';
-        alt.addEventListener('click', ()=>{ createYT(wrap, e.ytChannel, false, 'channel'); });
-        actions.append(openSrc, alt);
-      }else{
-        const id = ytIdFromUrl(e.url);
-        if(id){
-          ytMounts.push({slot:wrap, id, hostStd:true, attempts:0, mode:'video'});
-          openSrc.href=`https://www.youtube.com/watch?v=${id}`;
-          openSrc.textContent='Open source';
-          const alt = document.createElement('button'); alt.className='tiny'; alt.textContent='Alternate';
-          alt.addEventListener('click', ()=>{ createYT(wrap, id, false, 'video'); });
-          actions.append(openSrc, alt);
-        }else{
-          wrap.innerHTML = '<div class="muted" style="padding:10px">Unable to parse YouTube ID</div>';
-        }
-      }
-      card.appendChild(actions);
-
-    } else if(e.kind === 'windy'){
-      const wrap = document.createElement('div'); wrap.className='windywrap';
-      const slot = document.createElement('div'); slot.className='slot';
-      const a = document.createElement('a');
-      a.setAttribute('name','windy-webcam-timelapse-player');
-      a.setAttribute('data-id', e.windy.id);
-      a.setAttribute('data-play', e.windy.play);
-      a.setAttribute('data-loop', e.windy.loop);
-      a.setAttribute('data-auto-play', e.windy.auto); // force autoplay
-      a.setAttribute('data-force-full-screen-on-overlay-play', e.windy.fs);
-      a.setAttribute('data-interactive', e.windy.interactive);
-      a.href = `https://windy.com/webcams/${e.windy.id}`;
-      a.target = '_blank';
-      a.textContent = e.windy.title || 'Windy webcam';
-      slot.appendChild(a);
+    if(cfg.ytChannel){
+      // Channel live stream
+      const slot = document.createElement('div'); slot.style.cssText='position:absolute;inset:0';
       wrap.appendChild(slot);
-      card.appendChild(wrap);
-      ensureWindyScript();
+      buildChannelIframe(slot, cfg.ytChannel, false);
 
-      const actions = document.createElement('div'); actions.className='actions';
-      const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href=a.href; open.textContent='Open source';
-      const retry = document.createElement('button'); retry.className='tiny'; retry.textContent='Retry';
-      retry.addEventListener('click', ()=>{
-        slot.innerHTML=''; const aa=a.cloneNode(true); slot.appendChild(aa);
-        const s=document.createElement('script'); s.src='https://webcams.windy.com/webcams/public/embed/v2/script/player.js'; s.async=true; s.type='text/javascript'; document.body.appendChild(s);
-      });
-      actions.append(open, retry);
-      card.appendChild(actions);
+      const openSrc = document.createElement('a'); openSrc.className='tiny'; openSrc.target='_blank'; openSrc.rel='noopener';
+      openSrc.href = `https://www.youtube.com/channel/${encodeURIComponent(cfg.ytChannel)}/live`;
+      openSrc.textContent = 'Open channel live';
+      const kick = document.createElement('button'); kick.className='tiny'; kick.textContent='Play / Retry';
+      kick.addEventListener('click', startAll);
+      actions.append(openSrc, kick);
+    }else{
+      // One-off video
+      const div = document.createElement('div'); div.id = 'yt_'+Math.random().toString(36).slice(2);
+      div.style.cssText='position:absolute;inset:0';
+      wrap.appendChild(div);
+      const id = ytIdFromUrl(cfg.url);
+      const build = ()=>{
+        if(window.YT && window.YT.Player){ buildVideoPlayer(div, id, false); }
+        else { setTimeout(build, 120); }
+      };
+      build();
 
-    } else if(e.kind === 'snapshot' || e.kind === 'snapshot+stamp'){
-      const wrap = document.createElement('div'); wrap.className='snapwrap';
-      const img = document.createElement('img');
-      img.alt = `${e.city}, ${e.state} – refreshing image`;
-      img.referrerPolicy = 'no-referrer';
-      wrap.appendChild(img);
-      if(e.kind === 'snapshot+stamp'){
-        const stamp = document.createElement('div'); className='stamp';
-        const stampEl = document.createElement('div'); stampEl.className='stamp'; stampEl.textContent='Updated: …';
-        wrap.appendChild(stampEl);
-        scheduleRefresh(img, e.url, e.minSec || 15, e.maxSec || 30, stampEl);
-      }else{
-        scheduleRefresh(img, e.url, e.minSec || 15, e.maxSec || 30);
-      }
-      card.appendChild(wrap);
+      const openSrc = document.createElement('a'); openSrc.className='tiny'; openSrc.target='_blank'; openSrc.rel='noopener';
+      openSrc.href = `https://www.youtube.com/watch?v=${id}`;
+      openSrc.textContent = 'Open source';
+      const kick = document.createElement('button'); kick.className='tiny'; kick.textContent='Play / Retry';
+      kick.addEventListener('click', startAll);
+      actions.append(openSrc, kick);
     }
 
     const meta = document.createElement('div'); meta.className='meta';
-    const actions = document.createElement('div'); actions.className='actions';
-    const sourceHref = e.ytChannel ? `https://www.youtube.com/channel/${encodeURIComponent(e.ytChannel)}/live` : (e.url || (e.windy?.id ? `https://windy.com/webcams/${e.windy.id}` : ''));
-    if(sourceHref){
-      const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href = sourceHref; open.textContent = 'Open source';
-      actions.appendChild(open);
-    }
-    if(e.kind === 'snapshot' || e.kind === 'snapshot+stamp'){
-      const tip=document.createElement('span'); tip.className='note'; tip.textContent='Auto-refreshing still (15–30s)';
-      actions.appendChild(tip);
-    }
-    if(e.note){
-      const badge=document.createElement('span'); badge.className='note'; badge.textContent=e.note;
-      actions.appendChild(badge);
-    }
-    meta.innerHTML = `<div><div class="name">${e.who}</div><div class="city">${e.city}, ${e.state}</div></div>`;
-    meta.appendChild(actions);
+    const right = document.createElement('div'); right.className='actions'; right.append(...actions.children);
+    meta.innerHTML = `<div><div class="name">${cfg.who}</div><div class="city">${cfg.city}, ${cfg.state}</div></div>`;
+    meta.appendChild(right);
     card.appendChild(meta);
     grid.appendChild(card);
+  }
+
+  function addWindyCard(cfg){
+    const card = document.createElement('article'); card.className='cam';
+    const wrap = document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
+    const slot = document.createElement('div'); slot.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center';
+    const a = document.createElement('a');
+    a.setAttribute('name','windy-webcam-timelapse-player');
+    a.setAttribute('data-id', cfg.windy.id);
+    a.setAttribute('data-play', cfg.windy.play);
+    a.setAttribute('data-loop', cfg.windy.loop);
+    a.setAttribute('data-auto-play', cfg.windy.auto || '1'); // force autoplay
+    a.setAttribute('data-force-full-screen-on-overlay-play', cfg.windy.fs || '0');
+    a.setAttribute('data-interactive', cfg.windy.interactive || '1');
+    a.href = `https://windy.com/webcams/${cfg.windy.id}`;
+    a.target = '_blank';
+    a.textContent = cfg.windy.title || 'Windy webcam';
+    slot.appendChild(a);
+    wrap.appendChild(slot);
+    ensureWindyScript();
+
+    const meta = document.createElement('div'); meta.className='meta';
+    const right = document.createElement('div'); right.className='actions';
+    const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href=a.href; open.textContent='Open source';
+    right.appendChild(open);
+    if(cfg.note){ const badge=document.createElement('span'); badge.className='note'; badge.textContent=cfg.note; right.appendChild(badge); }
+    meta.innerHTML = `<div><div class="name">${cfg.who}</div><div class="city">${cfg.city}, ${cfg.state}</div></div>`;
+    meta.appendChild(right);
+    card.appendChild(meta);
+    grid.appendChild(card);
+  }
+
+  // Build grid
+  cams.forEach(c=>{
+    if(c.kind==='youtube') addYouTubeCard(c);
+    else if(c.kind==='windy') addWindyCard(c);
   });
 
-  // If the API landed before the grid was built, kick players now.
-  if (window.YT && typeof YT.Player === 'function') {
-    YT_API_READY = true;
-    startAllYouTube();
-  }
+  // If API was already present
+  if(window.YT && typeof YT.Player === 'function'){ YT_READY = true; startAll(); }
+
+  // Visibility changes: re-kick when tab regains focus
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') startAll(); });
 </script>
 </body>
 </html>

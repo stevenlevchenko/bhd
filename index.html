@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Blackhawk Data – Office Dashboard (Autoplay Fixed)</title>
+<title>Blackhawk Data – Office Dashboard (Channel Live Streams)</title>
 <link rel="preconnect" href="https://www.youtube.com" />
 <link rel="preconnect" href="https://www.youtube-nocookie.com" />
 <link rel="preconnect" href="https://i.ytimg.com" />
@@ -53,7 +53,7 @@
   @media (min-width:700px){.cam{grid-column:span 6}}
   @media (min-width:1200px){.cam{grid-column:span 4}}
   .media{position:relative;width:100%;padding-top:56.25%;background:#000}
-  .media iframe,.media img{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}
+  .media iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
   .meta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#0b1624;border-top:1px solid var(--border)}
   body[data-theme="light"] .meta{background:#f5f8ff}
   .name{font-weight:700;font-size:14px}
@@ -62,10 +62,6 @@
   .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .tiny{font-size:11px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:#0c1428;color:var(--text);cursor:pointer}
   body[data-theme="light"] .tiny{background:#eef3ff;color:#0e1726}
-  .note{font-size:11px;color:#8aa6cf;background:#0b1627;border:1px solid var(--chipb);padding:4px 8px;border-radius:999px}
-  body[data-theme="light"] .note{color:#315a92;background:#e9f1ff;border-color:#cfe2ff}
-  .square{aspect-ratio:4/3;background:#000;border-top:1px solid var(--border);border-radius:12px;overflow:hidden}
-  .square iframe{width:100%;height:100%;border:0;display:block}
 </style>
 </head>
 <body>
@@ -83,28 +79,10 @@
   <main>
     <div class="grid">
       <section class="tile" id="engineer-cams">
-        <h2>Engineer Weather Cams – Autoplay</h2>
+        <h2>Engineer Weather Cams – Channel Autoplay</h2>
         <div class="content">
           <div class="cams-grid" id="camsGrid"></div>
-          <p class="muted" style="margin-top:10px">Muted by default for autoplay. Click anywhere if a browser requires a user gesture.</p>
-        </div>
-      </section>
-
-      <section class="tile">
-        <h2>Live Traffic (Waze)</h2>
-        <div class="content">
-          <div class="square">
-            <iframe src="https://embed.waze.com/iframe?zoom=14&lat=40.7529&lon=-73.9926&ct=livemap&pin=1&traffic=true" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
-          </div>
-        </div>
-      </section>
-
-      <section class="tile">
-        <h2>Weather (Windy)</h2>
-        <div class="content">
-          <div class="square">
-            <iframe title="Windy" src="https://embed.windy.com/embed2.html?lat=40.75295&lon=-73.9919&detailLat=40.75295&detailLon=-73.9919&width=100%25&height=100%25&zoom=11&level=surface&overlay=wind&product=ecmwf&marker=true&menu=&message=&pressure=&type=map&location=coordinates&metricWind=mph&metricTemp=%C2%B0F" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
-          </div>
+          <p class="muted" style="margin-top:10px">Muted for autoplay. Click a tile if your browser blocks autoplay.</p>
         </div>
       </section>
     </div>
@@ -131,7 +109,7 @@
     applyTheme(cur === 'dark' ? 'light' : 'dark');
   });
 
-  // ET clock
+  // Clock
   const clockEl = document.getElementById('clock');
   function tick(){
     try{
@@ -143,11 +121,9 @@
   }
   tick();
 
-  // ---- YouTube robust autoplay manager ----
-  const players = []; // for video-based embeds (YT.Player instances)
-  const channelIframes = []; // for channel live_stream embeds (DOM iframes)
-  let YT_READY = false;
-
+  // ---- YouTube autoplay manager ----
+  const players = [];
+  const channelIframes = [];
   function ytIdFromUrl(u){
     try{
       const url = new URL(u);
@@ -161,8 +137,7 @@
     return null;
   }
 
-  // Load IFrame API
-  window.onYouTubeIframeAPIReady = function(){ YT_READY = true; startAll(); };
+  window.onYouTubeIframeAPIReady = function(){ startAll(); };
   (function(){ const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api'; s.async=true; document.head.appendChild(s); })();
 
   function buildVideoPlayer(el, videoId, useNoCookie=false){
@@ -170,10 +145,7 @@
     const p = new YT.Player(el, {
       host,
       videoId,
-      playerVars: {
-        autoplay: 1, mute: 1, playsinline: 1, rel: 0, controls: 1,
-        modestbranding: 1, fs: 1, iv_load_policy: 3
-      },
+      playerVars: { autoplay:1, mute:1, playsinline:1, rel:0, controls:1, modestbranding:1, fs:1, iv_load_policy:3 },
       events: {
         onReady: (e)=>{ try{ e.target.mute(); e.target.playVideo(); }catch{} },
         onStateChange: (e)=>{
@@ -181,20 +153,16 @@
             try{ e.target.playVideo(); }catch{}
           }
         },
-        onError: (_)=>{
-          // Swap host once
-          const cur = p.getIframe()?.src || '';
-          if(cur.includes('youtube.com') && !cur.includes('youtube-nocookie.com')){
+        onError: ()=>{
+          try{
             const parent = p.getIframe().parentElement;
-            parent.innerHTML = '';
-            const div = document.createElement('div'); parent.appendChild(div);
-            setTimeout(()=>buildVideoPlayer(div, videoId, true), 50);
-          }
+            parent.innerHTML=''; const div=document.createElement('div'); parent.appendChild(div);
+            setTimeout(()=>buildVideoPlayer(div, videoId, !useNoCookie), 50);
+          }catch{}
         }
       }
     });
     players.push(p);
-    // Extra nudges
     setTimeout(()=>{ try{ p.mute(); p.playVideo(); }catch{} }, 400);
     setInterval(()=>{ try{ if(p.getPlayerState && p.getPlayerState() !== YT.PlayerState.PLAYING){ p.playVideo(); } }catch{} }, 5000);
   }
@@ -205,38 +173,24 @@
     ifr.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
     ifr.setAttribute('allowfullscreen', '');
     ifr.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
-    ifr.setAttribute('loading', 'lazy');
+    ifr.setAttribute('loading', 'eager');
     ifr.src = `${host}/embed/live_stream?channel=${encodeURIComponent(channelId)}&autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1`;
     ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;display:block';
     slot.innerHTML = ''; slot.appendChild(ifr);
     const entry = { iframe: ifr, channelId, useNoCookie };
     channelIframes.push(entry);
-    // Try to kick playback repeatedly
     const nudge = ()=>{
       try{
         ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'mute',args:[]}), '*');
         ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:[]}), '*');
       }catch{}
     };
-    setTimeout(nudge, 300);
-    const interval = setInterval(nudge, 5000);
-    // Swap host once if loads but stays blocked
-    setTimeout(()=>{
-      if(!entry.useNoCookie){
-        try{
-          const src = ifr.src;
-          if(src.includes('youtube.com')){
-            entry.useNoCookie = true;
-            buildChannelIframe(slot, channelId, true);
-          }
-        }catch{}
-      }
-      clearInterval(interval);
-    }, 15000);
+    setTimeout(nudge, 250);
+    const interval = setInterval(nudge, 4000);
+    setTimeout(()=>{ clearInterval(interval); if(!entry.useNoCookie){ buildChannelIframe(slot, channelId, true); } }, 15000);
   }
 
   function startAll(){
-    // Kick any existing refs
     players.forEach(p=>{ try{ p.mute(); p.playVideo(); }catch{} });
     channelIframes.forEach(({iframe})=>{
       try{
@@ -245,42 +199,31 @@
       }catch{}
     });
   }
+  ['click','keydown','touchstart'].forEach(ev=>{ window.addEventListener(ev, startAll, { passive:true }); });
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') startAll(); });
 
-  // Global gesture => kickstart
-  ['click','keydown','touchstart'].forEach(ev=>{
-    window.addEventListener(ev, ()=>{ startAll(); }, { once:false, passive:true });
-  });
-
-  // ---- Cameras config ----
-  // Prefer ytChannel for persistent live streams. Use url for one-off IDs.
+  // ---- Cameras (channel-first) ----
   const cams = [
     { who:'Rafael Caballero', kind:'youtube', url:'https://www.youtube.com/watch?v=xR8_Es3pMss', city:'Roanoke (near Winchester)', state:'VA' },
-    { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
-    { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
 
-    // Nathan: channel-based always-live (Cincy skyline)
-    { who:'Nathan Brann',     kind:'youtube', ytChannel:'UCQc7Ol2itgbnMXPjZmPdRRQ', url:'https://www.youtube.com/@apreslin/live', city:'Cincinnati', state:'OH' },
+    // Lauren -> ABC13 Houston channel live
+    { who:'Lauren Gonzalez', kind:'youtube', ytChannel:'UCDmNmxF3ZVMeGyvWE9tOqPQ', url:'https://www.youtube.com/@ABC13Houston/live', city:'Houston', state:'TX' },
 
-    { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
-    { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
-    { who:'Steve Luton',      kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' },
+    { who:'Joe Golemb', kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
 
-    // Windy examples (autoplay controlled by their script)
-    { who:'Virag Doshi',      kind:'windy',   windy:{ id:'1662455177', play:'day', loop:'0', auto:'1', fs:'0', interactive:'1', title:'Kopra Village' }, city:'Morbi (regional Gujarat)', state:'India', note:'Camera feed is in Mumbai' },
-    { who:'Jacob Thatcher',   kind:'windy',   windy:{ id:'1595185933', play:'day', loop:'0', auto:'1', fs:'0', interactive:'1', title:'Oak Ridge › North: Pilot Knob' }, city:'Knoxville (regional)', state:'TN' }
+    // Nathan -> Aaron Preslin / CincyVision channel live
+    { who:'Nathan Brann', kind:'youtube', ytChannel:'UCQc7Ol2itgbnMXPjZmPdRRQ', url:'https://www.youtube.com/@AaronPreslin/live', city:'Cincinnati', state:'OH' },
+
+    // Noah -> WFMY News 2 channel live
+    { who:'Noah Herald', kind:'youtube', ytChannel:'UC6UcjqhROKEWmz7aGzees9A', url:'https://www.youtube.com/@wfmynews2/live', city:'Greensboro (Triad)', state:'NC' },
+
+    // Jake -> Peregrine Networks channel live (Manchester, NH)
+    { who:'Jake Fitzgerald', kind:'youtube', ytChannel:'UCWqiOqqcBZT9Rx3HX7Zrd6A', url:'https://www.youtube.com/@peregrinenetworks5080/live', city:'Manchester / NH region', state:'NH' },
+
+    { who:'Steve Luton', kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' }
   ];
 
   const grid = document.getElementById('camsGrid');
-
-  function ensureWindyScript(){
-    if(document.querySelector('script[data-windy-embed]')) return;
-    const s=document.createElement('script');
-    s.src='https://webcams.windy.com/webcams/public/embed/v2/script/player.js';
-    s.async=true;
-    s.type='text/javascript';
-    s.setAttribute('data-windy-embed','1');
-    document.body.appendChild(s);
-  }
 
   function addYouTubeCard(cfg){
     const card = document.createElement('article'); card.className='cam';
@@ -289,7 +232,6 @@
     const actions = document.createElement('div'); actions.className='actions';
 
     if(cfg.ytChannel){
-      // Channel live stream
       const slot = document.createElement('div'); slot.style.cssText='position:absolute;inset:0';
       wrap.appendChild(slot);
       buildChannelIframe(slot, cfg.ytChannel, false);
@@ -301,7 +243,6 @@
       kick.addEventListener('click', startAll);
       actions.append(openSrc, kick);
     }else{
-      // One-off video
       const div = document.createElement('div'); div.id = 'yt_'+Math.random().toString(36).slice(2);
       div.style.cssText='position:absolute;inset:0';
       wrap.appendChild(div);
@@ -328,47 +269,9 @@
     grid.appendChild(card);
   }
 
-  function addWindyCard(cfg){
-    const card = document.createElement('article'); card.className='cam';
-    const wrap = document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
-    const slot = document.createElement('div'); slot.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center';
-    const a = document.createElement('a');
-    a.setAttribute('name','windy-webcam-timelapse-player');
-    a.setAttribute('data-id', cfg.windy.id);
-    a.setAttribute('data-play', cfg.windy.play);
-    a.setAttribute('data-loop', cfg.windy.loop);
-    a.setAttribute('data-auto-play', cfg.windy.auto || '1'); // force autoplay
-    a.setAttribute('data-force-full-screen-on-overlay-play', cfg.windy.fs || '0');
-    a.setAttribute('data-interactive', cfg.windy.interactive || '1');
-    a.href = `https://windy.com/webcams/${cfg.windy.id}`;
-    a.target = '_blank';
-    a.textContent = cfg.windy.title || 'Windy webcam';
-    slot.appendChild(a);
-    wrap.appendChild(slot);
-    ensureWindyScript();
+  cams.forEach(c=> addYouTubeCard(c));
 
-    const meta = document.createElement('div'); meta.className='meta';
-    const right = document.createElement('div'); right.className='actions';
-    const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href=a.href; open.textContent='Open source';
-    right.appendChild(open);
-    if(cfg.note){ const badge=document.createElement('span'); badge.className='note'; badge.textContent=cfg.note; right.appendChild(badge); }
-    meta.innerHTML = `<div><div class="name">${cfg.who}</div><div class="city">${cfg.city}, ${cfg.state}</div></div>`;
-    meta.appendChild(right);
-    card.appendChild(meta);
-    grid.appendChild(card);
-  }
-
-  // Build grid
-  cams.forEach(c=>{
-    if(c.kind==='youtube') addYouTubeCard(c);
-    else if(c.kind==='windy') addWindyCard(c);
-  });
-
-  // If API was already present
-  if(window.YT && typeof YT.Player === 'function'){ YT_READY = true; startAll(); }
-
-  // Visibility changes: re-kick when tab regains focus
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') startAll(); });
+  if(window.YT && typeof YT.Player === 'function'){ startAll(); }
 </script>
 </body>
 </html>

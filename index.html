@@ -134,18 +134,6 @@
   </main>
 
 <script>
-  // Display helper: "Firstname L."
-  function formatName(n){
-    try{
-      if(!n) return '';
-      const parts = String(n).trim().split(/\s+/);
-      const first = parts[0] || '';
-      const last = parts.length > 1 ? parts[parts.length-1] : '';
-      const initial = last ? (last[0].toUpperCase() + '.') : '';
-      return initial ? `${first} ${initial}` : first;
-    }catch{return n;}
-  }
-
   // Theme toggle
   const themeBtn = document.getElementById('themeBtn');
   const themeIcon = document.getElementById('themeIcon');
@@ -299,17 +287,17 @@
 
   // ---- Cameras ----
   const cams = [
-    { who:'Rafael C', kind:'youtube', url:'https://www.youtube.com/watch?v=xR8_Es3pMss', city:'Roanoke (near Winchester)', state:'VA' },
-    { who:'Lauren G',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
-    { who:'Joe G',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
-    { who:'Virag D',      kind:'windy',   windy:{ id:'1662455177', play:'day', loop:'0', auto:'0', fs:'0', interactive:'1', title:'Kopra Village' }, city:'Morbi (regional Gujarat)', state:'India', note:'Camera feed is in Mumbai' },
-    { who:'Jacob T',   kind:'windy',   windy:{ id:'1595185933', play:'day', loop:'0', auto:'0', fs:'0', interactive:'1', title:'Oak Ridge › North: Pilot Knob' }, city:'Knoxville (regional)', state:'TN' },
-    { who:'Nathan B',     kind:'youtube', url:'https://www.youtube.com/watch?v=8zAUmoSrl6g', city:'Cincinnati', state:'OH' },
-    { who:'Noah H',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
-    { who:'Jake F',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
-    { who:'Steve Lute',      kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' },
-    { who:'Dallas M',    kind:'snapshot+stamp', url:'https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Stony_Brook_at_Princeton/NJ_Stony_Brook_at_Princeton_newest.jpg', city:'Princeton (Stony Brook)', state:'NJ', minSec:15, maxSec:30 },
-    { who:'Steven Lev', kind:'snapshot+stamp', url:'https://map.eye-n-sky.net/webcam/Caldwell/Caldwell-East.jpg', city:'Caldwell (near Star/Boise area)', state:'ID', minSec:15, maxSec:30 },
+    { who:'Rafael Caballero', kind:'youtube', url:'https://www.youtube.com/watch?v=xR8_Es3pMss', city:'Roanoke (near Winchester)', state:'VA' },
+    { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
+    { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
+    { who:'Virag Doshi',      kind:'windy',   windy:{ id:'1662455177', play:'day', loop:'0', auto:'0', fs:'0', interactive:'1', title:'Kopra Village' }, city:'Morbi (regional Gujarat)', state:'India', note:'Camera feed is in Mumbai' },
+    { who:'Jacob Thatcher',   kind:'windy',   windy:{ id:'1595185933', play:'day', loop:'0', auto:'0', fs:'0', interactive:'1', title:'Oak Ridge › North: Pilot Knob' }, city:'Knoxville (regional)', state:'TN' },
+    { who:'Nathan Brann',     kind:'youtube', url:'https://www.youtube.com/watch?v=8zAUmoSrl6g', city:'Cincinnati', state:'OH' },
+    { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
+    { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
+    { who:'Steve Luton',      kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' },
+    { who:'Dallas Munday',    kind:'snapshot+stamp', url:'https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Stony_Brook_at_Princeton/NJ_Stony_Brook_at_Princeton_newest.jpg', city:'Princeton (Stony Brook)', state:'NJ', minSec:15, maxSec:30 },
+    { who:'Steven Levchenko', kind:'snapshot+stamp', url:'https://map.eye-n-sky.net/webcam/Caldwell/Caldwell-East.jpg', city:'Caldwell (near Star/Boise area)', state:'ID', minSec:15, maxSec:30 },
   ];
 
   const grid = document.getElementById('camsGrid');

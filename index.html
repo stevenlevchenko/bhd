@@ -1,3 +1,4 @@
+<!-- /mnt/data/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -109,7 +110,7 @@
         <h2>Engineer Weather Cams</h2>
         <div class="content">
           <div class="cams-grid" id="camsGrid"></div>
-          <p class="muted" style="margin-top:10px">Autoplay tries first (muted). If a cam stalls, use Alternate/Open.</p>
+          <p class="muted" style="margin-top:10px">Autoplay is forced (muted). Use Alternate/Open if a cam stalls.</p>
         </div>
       </section>
 
@@ -180,11 +181,11 @@
   function renderETAs(){const peak=isPeak(new Date());const list=document.getElementById('subwayList');list.innerHTML='';routes.forEach(r=>{const span=peak?r.peak:r.base;const cls=etaClass(span);const url=`https://www.google.com/maps/dir/?api=1&origin=${penn}&destination=${encodeURIComponent(r.addr)}&travelmode=transit`;const el=document.createElement('div');el.className='route';el.innerHTML=`<h3>${r.name}</h3><div class="eta ${cls}"><span class="chip">${peak?'Peak':'Off-peak'}</span> <span class="mins">${span[0]}–${span[1]} min</span></div><div class="muted">Open for live options & exact ETAs.</div><a class="btn" target="_blank" href="${url}">Open route</a>`;list.appendChild(el);});}
   renderETAs(); setInterval(renderETAs,5*60*1000);
 
-  // ---- YouTube AUTOPLAY via IFrame API ----
+  // ---- YouTube helpers ----
   function ytIdFromUrl(u){
     try{
       const url = new URL(u);
-      if(url.hostname.includes('youtube')){
+      if(url.hostname.includes('youtube') || url.hostname.includes('youtu.be')){
         if(url.pathname.startsWith('/watch')) return url.searchParams.get('v');
         const m = url.pathname.match(/\/embed\/([A-Za-z0-9_\-]+)/); if(m) return m[1];
         const s = url.pathname.split('/'); return s[s.length-1];
@@ -197,34 +198,60 @@
   window.onYouTubeIframeAPIReady = function(){ YT_API_READY = true; startAllYouTube(); };
   (function(){ const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api'; s.async=true; document.head.appendChild(s); })();
 
-  const ytMounts = []; // {slot, id, hostStd, attempts}
-  function createYT(slot, id, hostStd=true){
+  const ytMounts = []; // {slot, id, hostStd, attempts, mode:'video'|'channel', channelId?}
+
+  function createYT(slot, idOrChannel, hostStd=true, mode='video'){
     slot.innerHTML = '';
     const div = document.createElement('div');
-    const pid = 'yt_'+id+'_'+Math.random().toString(36).slice(2);
+    const pid = 'yt_'+Math.random().toString(36).slice(2);
     div.id = pid;
     slot.appendChild(div);
 
+    // When binding to a channel, let the API create the iframe then nudge autoplay.
+    const playerVarsBase = { autoplay: 1, mute: 1, playsinline: 1, rel: 0, modestbranding: 1, fs: 1, iv_load_policy: 3, enablejsapi: 1 };
     const opts = {
       host: hostStd ? 'https://www.youtube.com' : 'https://www.youtube-nocookie.com',
-      videoId: id,
-      playerVars: { autoplay: 1, mute: 1, playsinline: 1, rel: 0, modestbranding: 1, fs: 1, iv_load_policy: 3 },
+      playerVars: playerVarsBase,
       events: {
         onReady: (e)=>{ try{ e.target.mute(); e.target.playVideo(); }catch{} },
         onError: ()=>{
           const m = ytMounts.find(x=>x.slot===slot);
           if(m && m.attempts<2){
             m.attempts++;
-            createYT(slot, id, !hostStd);
+            createYT(slot, idOrChannel, !hostStd, mode);
           }
         }
       }
     };
-    try{ new YT.Player(pid, opts); }catch{
-      setTimeout(()=>{ if(YT_API_READY) try{ new YT.Player(pid, opts); }catch{} }, 120);
+
+    if(mode === 'video'){
+      opts.videoId = idOrChannel;
+    }else{
+      // Channel "always-live" embed
+      opts.playerVars = {...playerVarsBase, listType:'playlist'};
+      // Inject an iframe manually pointing to live_stream, then let API grab it.
+      const ifr = document.createElement('iframe');
+      ifr.allow = 'autoplay; encrypted-media; picture-in-picture';
+      ifr.referrerPolicy = 'no-referrer-when-downgrade';
+      ifr.loading = 'lazy';
+      ifr.src = `${hostStd ? 'https://www.youtube.com' : 'https://www.youtube-nocookie.com'}/embed/live_stream?channel=${encodeURIComponent(idOrChannel)}&autoplay=1&mute=1&playsinline=1`;
+      ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;display:block';
+      slot.innerHTML = '';
+      slot.appendChild(ifr);
+      // Also nudge via postMessage
+      setTimeout(()=>{
+        try{
+          ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'mute',args:[]}), '*');
+          ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:[]}), '*');
+        }catch{}
+      }, 600);
     }
 
-    // Try nudging play via postMessage too
+    try{ if(mode==='video') new YT.Player(pid, opts); }catch{
+      setTimeout(()=>{ if(YT_API_READY && mode==='video') try{ new YT.Player(pid, opts); }catch{} }, 120);
+    }
+
+    // Extra nudge
     setTimeout(()=>{
       try{
         const iframe = slot.querySelector('iframe');
@@ -233,18 +260,18 @@
       }catch{}
     }, 600);
 
-    // Watchdog: host swap if not progressing
+    // Watchdog
     setTimeout(()=>{
       const m = ytMounts.find(x=>x.slot===slot);
       if(m && m.attempts<2){
         m.attempts++;
-        createYT(slot, id, !hostStd);
+        createYT(slot, idOrChannel, !hostStd, mode);
       }
     }, 2500);
   }
 
   function startAllYouTube(){
-    ytMounts.forEach(m => createYT(m.slot, m.id, m.hostStd));
+    ytMounts.forEach(m => createYT(m.slot, m.mode==='channel' ? m.channelId : m.id, m.hostStd, m.mode));
   }
 
   // ---- Snapshot helpers ----
@@ -286,13 +313,19 @@
   }
 
   // ---- Cameras ----
+  // NOTE: For "always-live" behavior on YouTube, prefer ytChannel over a one-off video URL.
   const cams = [
     { who:'Rafael Caballero', kind:'youtube', url:'https://www.youtube.com/watch?v=xR8_Es3pMss', city:'Roanoke (near Winchester)', state:'VA' },
     { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
     { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
-    { who:'Virag Doshi',      kind:'windy',   windy:{ id:'1662455177', play:'day', loop:'0', auto:'0', fs:'0', interactive:'1', title:'Kopra Village' }, city:'Morbi (regional Gujarat)', state:'India', note:'Camera feed is in Mumbai' },
-    { who:'Jacob Thatcher',   kind:'windy',   windy:{ id:'1595185933', play:'day', loop:'0', auto:'0', fs:'0', interactive:'1', title:'Oak Ridge › North: Pilot Knob' }, city:'Knoxville (regional)', state:'TN' },
-    { who:'Nathan Brann',     kind:'youtube', url:'https://www.youtube.com/watch?v=8zAUmoSrl6g', city:'Cincinnati', state:'OH' },
+    { who:'Virag Doshi',      kind:'windy',   windy:{ id:'1662455177', play:'day', loop:'0', auto:'1', fs:'0', interactive:'1', title:'Kopra Village' }, city:'Morbi (regional Gujarat)', state:'India', note:'Camera feed is in Mumbai' },
+    { who:'Jacob Thatcher',   kind:'windy',   windy:{ id:'1595185933', play:'day', loop:'0', auto:'1', fs:'0', interactive:'1', title:'Oak Ridge › North: Pilot Knob' }, city:'Knoxville (regional)', state:'TN' },
+
+    // Nathan: if you have the channel ID, use ytChannel to avoid "recording not available" errors on ended live events.
+    // Example placeholder below; replace 'UCxxxxxxxxxxxxxxxxxxxxxx' with the correct channel ID when known.
+    // If you prefer to keep a specific video URL, leave ytChannel undefined and keep url.
+    { who:'Nathan Brann',     kind:'youtube', url:'https://www.youtube.com/watch?v=8zAUmoSrl6g', ytChannel:null, city:'Cincinnati', state:'OH' },
+
     { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
     { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
     { who:'Steve Luton',      kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' },
@@ -319,18 +352,31 @@
       const wrap = document.createElement('div'); wrap.className='ytwrap';
       card.appendChild(wrap);
 
-      const id = ytIdFromUrl(e.url);
-      if(id){
-        ytMounts.push({slot:wrap, id, hostStd:true, attempts:0});
-        const actions = document.createElement('div'); actions.className='actions';
-        const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href=`https://www.youtube.com/watch?v=${id}`; open.textContent='Open source';
+      const actions = document.createElement('div'); actions.className='actions';
+      const openSrc = document.createElement('a'); openSrc.className='tiny'; openSrc.target='_blank'; openSrc.rel='noopener';
+
+      if(e.ytChannel){
+        // Channel "always-live"
+        ytMounts.push({slot:wrap, id:null, hostStd:true, attempts:0, mode:'channel', channelId:e.ytChannel});
+        openSrc.href=`https://www.youtube.com/channel/${encodeURIComponent(e.ytChannel)}/live`;
+        openSrc.textContent='Open channel live';
         const alt = document.createElement('button'); alt.className='tiny'; alt.textContent='Alternate';
-        alt.addEventListener('click', ()=>{ createYT(wrap, id, false); });
-        actions.append(open, alt);
-        card.appendChild(actions);
+        alt.addEventListener('click', ()=>{ createYT(wrap, e.ytChannel, false, 'channel'); });
+        actions.append(openSrc, alt);
       }else{
-        wrap.innerHTML = '<div class="muted" style="padding:10px">Unable to parse YouTube ID</div>';
+        const id = ytIdFromUrl(e.url);
+        if(id){
+          ytMounts.push({slot:wrap, id, hostStd:true, attempts:0, mode:'video'});
+          openSrc.href=`https://www.youtube.com/watch?v=${id}`;
+          openSrc.textContent='Open source';
+          const alt = document.createElement('button'); alt.className='tiny'; alt.textContent='Alternate';
+          alt.addEventListener('click', ()=>{ createYT(wrap, id, false, 'video'); });
+          actions.append(openSrc, alt);
+        }else{
+          wrap.innerHTML = '<div class="muted" style="padding:10px">Unable to parse YouTube ID</div>';
+        }
       }
+      card.appendChild(actions);
 
     } else if(e.kind === 'windy'){
       const wrap = document.createElement('div'); wrap.className='windywrap';
@@ -340,7 +386,7 @@
       a.setAttribute('data-id', e.windy.id);
       a.setAttribute('data-play', e.windy.play);
       a.setAttribute('data-loop', e.windy.loop);
-      a.setAttribute('data-auto-play', e.windy.auto);
+      a.setAttribute('data-auto-play', e.windy.auto); // force autoplay
       a.setAttribute('data-force-full-screen-on-overlay-play', e.windy.fs);
       a.setAttribute('data-interactive', e.windy.interactive);
       a.href = `https://windy.com/webcams/${e.windy.id}`;
@@ -368,9 +414,10 @@
       img.referrerPolicy = 'no-referrer';
       wrap.appendChild(img);
       if(e.kind === 'snapshot+stamp'){
-        const stamp = document.createElement('div'); stamp.className='stamp'; stamp.textContent='Updated: …';
-        wrap.appendChild(stamp);
-        scheduleRefresh(img, e.url, e.minSec || 15, e.maxSec || 30, stamp);
+        const stamp = document.createElement('div'); className='stamp';
+        const stampEl = document.createElement('div'); stampEl.className='stamp'; stampEl.textContent='Updated: …';
+        wrap.appendChild(stampEl);
+        scheduleRefresh(img, e.url, e.minSec || 15, e.maxSec || 30, stampEl);
       }else{
         scheduleRefresh(img, e.url, e.minSec || 15, e.maxSec || 30);
       }
@@ -379,7 +426,7 @@
 
     const meta = document.createElement('div'); meta.className='meta';
     const actions = document.createElement('div'); actions.className='actions';
-    const sourceHref = e.url || (e.windy?.id ? `https://windy.com/webcams/${e.windy.id}` : '');
+    const sourceHref = e.ytChannel ? `https://www.youtube.com/channel/${encodeURIComponent(e.ytChannel)}/live` : (e.url || (e.windy?.id ? `https://windy.com/webcams/${e.windy.id}` : ''));
     if(sourceHref){
       const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href = sourceHref; open.textContent = 'Open source';
       actions.appendChild(open);
@@ -397,6 +444,12 @@
     card.appendChild(meta);
     grid.appendChild(card);
   });
+
+  // If the API landed before the grid was built, kick players now.
+  if (window.YT && typeof YT.Player === 'function') {
+    YT_API_READY = true;
+    startAllYouTube();
+  }
 </script>
 </body>
 </html>

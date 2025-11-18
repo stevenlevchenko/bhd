@@ -324,7 +324,11 @@
     // Nathan: if you have the channel ID, use ytChannel to avoid "recording not available" errors on ended live events.
     // Example placeholder below; replace 'UCxxxxxxxxxxxxxxxxxxxxxx' with the correct channel ID when known.
     // If you prefer to keep a specific video URL, leave ytChannel undefined and keep url.
-    { who:'Nathan Brann',     kind:'youtube', url:'https://www.youtube.com/watch?v=8zAUmoSrl6g', ytChannel:null, city:'Cincinnati', state:'OH' },
+{ who:'Nathan Brann', kind:'youtube',
+  // keep url as a fallback if you want, but channel is the key
+  ytChannel:'UCQc7Ol2itgbnMXPjZmPdRRQ',
+  url:'https://www.youtube.com/@apreslin/live',
+  city:'Cincinnati', state:'OH' },
 
     { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
     { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },

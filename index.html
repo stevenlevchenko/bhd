@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Blackhawk Data – Office Dashboard (Fixed Subway & Cams)</title>
+<title>Blackhawk Data – Office Dashboard</title>
 <link rel="preconnect" href="https://www.youtube.com" />
 <link rel="preconnect" href="https://www.youtube-nocookie.com" />
 <link rel="preconnect" href="https://i.ytimg.com" />
@@ -163,7 +163,7 @@
   }
   tick();
 
-  // Subway (heuristic ETAs) - FIXED
+  // Subway (heuristic ETAs)
   const penn=encodeURIComponent('34 St–Penn Station, New York, NY');
   const routes=[
     {name:'Grand Central–42 St',addr:'Grand Central Terminal, NYC',base:[9,12],peak:[11,16]},
@@ -172,8 +172,16 @@
     {name:'Atlantic Av–Barclays (Bklyn)',addr:'Barclays Center, Brooklyn',base:[22,30],peak:[28,38]},
     {name:'Jamaica Center (Queens)',addr:'Jamaica Center–Parsons/Archer Station',base:[38,50],peak:[45,60]}
   ];
-  function isPeak(dt){const z=new Date(dt.toLocaleString('en-US',{timeZone:'America/New_York'}));const d=z.getDay(),h=z.getHours(),m=z.getMinutes(),t=h+m/60;return d>=1&&d<=5&&((t>=7&&t<10)||(t>=16&&t<19));}
-  function etaClass(mins){if(mins[1]<=15)return'good';if(mins[1]<=35)return'warn';return'bad';}
+  function isPeak(dt){
+    const z=new Date(dt.toLocaleString('en-US',{timeZone:'America/New_York'}));
+    const d=z.getDay(),h=z.getHours(),m=z.getMinutes(),t=h+m/60;
+    return d>=1&&d<=5&&((t>=7&&t<10)||(t>=16&&t<19));
+  }
+  function etaClass(mins){
+    if(mins[1]<=15)return'good';
+    if(mins[1]<=35)return'warn';
+    return'bad';
+  }
   function renderETAs(){
     const peak=isPeak(new Date());
     const list=document.getElementById('subwayList');
@@ -184,7 +192,7 @@
       const url=`https://www.google.com/maps/dir/?api=1&origin=${penn}&destination=${encodeURIComponent(r.addr)}&travelmode=transit`;
       const el=document.createElement('div');
       el.className='route';
-      el.innerHTML=`
+      el.innerHTML = `
         <h3>${r.name}</h3>
         <div class="eta ${cls}">
           <span class="chip">${peak?'Peak':'Off-peak'}</span>
@@ -198,7 +206,7 @@
   }
   renderETAs(); setInterval(renderETAs,5*60*1000);
 
-  // ---- YouTube robust autoplay manager (minimal) ----
+  // ---- YouTube autoplay (minimal) ----
   const players = [];
   function ytIdFromUrl(u){
     try{
@@ -212,9 +220,10 @@
     }catch{}
     return null;
   }
-  window.onYouTubeIframeAPIReady = function(){ players.forEach(p=>{ try{ p.mute(); p.playVideo(); }catch{} }); };
+  window.onYouTubeIframeAPIReady = function(){
+    players.forEach(p=>{ try{ p.mute(); p.playVideo(); }catch{} });
+  };
   (function(){ const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api'; s.async=true; document.head.appendChild(s); })();
-
   function buildVideoPlayer(el, videoId){
     const p = new YT.Player(el, {
       videoId,
@@ -229,9 +238,7 @@
     if(document.querySelector('script[data-windy-embed]')) return;
     const s=document.createElement('script');
     s.src='https://webcams.windy.com/webcams/public/embed/v2/script/player.js';
-    s.async=true;
-    s.type='text/javascript';
-    s.setAttribute('data-windy-embed','1');
+    s.async=true; s.type='text/javascript'; s.setAttribute('data-windy-embed','1');
     document.body.appendChild(s);
   }
 
@@ -273,120 +280,55 @@
     doRefresh();
   }
 
-  // ---- Cameras (Virag Windy + snapshots restored) ----
-  const cams = [
-    { who:'Rafael Caballero', kind:'youtube', url:'https://www.youtube.com/watch?v=xR8_Es3pMss', city:'Roanoke (near Winchester)', state:'VA' },
-    { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
-    { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
-
-    // Virag (restore working Windy embed; feed in Mumbai)
-    { who:'Virag Doshi',      kind:'windy',   windy:{ id:'1662455177', play:'day', loop:'0', auto:'1', fs:'0', interactive:'1', title:'Kopra Village' }, city:'Morbi (regional Gujarat)', state:'India', note:'Camera feed is in Mumbai' },
-
-    { who:'Nathan Brann', kind:'youtube', ytChannel:'UCQc7Ol2itgbnMXPjZmPdRRQ', url:'https://www.youtube.com/@apreslin/live', city:'Cincinnati', state:'OH' },
-    { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
-    { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
-    { who:'Steve Luton',      kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' },
-
-    // Snapshots
-    { who:'Dallas Munday',    kind:'snapshot+stamp', url:'https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Stony_Brook_at_Princeton/NJ_Stony_Brook_at_Princeton_newest.jpg', city:'Princeton (Stony Brook)', state:'NJ', minSec:15, maxSec:30 },
-    { who:'Steven Levchenko', kind:'snapshot+stamp', url:'https://map.eye-n-sky.net/webcam/Caldwell/Caldwell-East.jpg', city:'Caldwell (near Star/Boise area)', state:'ID', minSec:15, maxSec:30 }
-  ];
-
-  const grid = document.getElementById('camsGrid');
-
+  // ---- Card builders ----
   function addYouTubeCard(cfg){
     const card = document.createElement('article'); card.className='cam';
     const wrap = document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
-
-    if (cfg.ytChannel) {
-      // Channel-based live stream (persistent)
-      const slot = document.createElement('div'); slot.style.cssText='position:absolute;inset:0';
-      wrap.appendChild(slot);
+    if (cfg.ytChannel){
       const ifr = document.createElement('iframe');
       ifr.allow = 'autoplay; encrypted-media; picture-in-picture';
       ifr.allowFullscreen = true;
       ifr.referrerPolicy = 'no-referrer-when-downgrade';
       ifr.loading = 'eager';
-      ifr.src = 'https://www.youtube.com/embed/live_stream?channel='
-        + encodeURIComponent(cfg.ytChannel)
-        + '&autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1';
-      ifr.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;display:block';
-      slot.appendChild(ifr);
-
-      // Gentle nudge for autoplay
-      const nudge = () => {
-        try {
-          ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'mute',args:[]}), '*');
-          ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:[]}), '*');
-        } catch {}
-      };
-      setTimeout(nudge, 300);
-      const nudgeInt = setInterval(nudge, 4000);
-      setTimeout(()=>clearInterval(nudgeInt), 20000);
-
-      const meta = document.createElement('div'); meta.className='meta';
-      meta.innerHTML = `<div><div class="name">${cfg.who}</div><div class="city">${cfg.city}, ${cfg.state}</div></div>`;
-      const right = document.createElement('div'); right.className='actions';
-      const openSrc = document.createElement('a'); openSrc.className='tiny'; openSrc.target='_blank'; openSrc.rel='noopener';
-      openSrc.href = cfg.url || ('https://www.youtube.com/channel/'+encodeURIComponent(cfg.ytChannel)+'/live');
-      openSrc.textContent = 'Open channel live';
-      const retry = document.createElement('button'); retry.className='tiny'; retry.textContent='Play / Retry';
-      retry.addEventListener('click', nudge);
-      right.append(openSrc, retry);
-      meta.appendChild(right);
-      card.appendChild(meta);
-      grid.appendChild(card);
-      return;
+      ifr.src = `https://www.youtube.com/embed/live_stream?channel=${encodeURIComponent(cfg.ytChannel)}&autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1`;
+      ifr.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;display:block';
+      wrap.appendChild(ifr);
+    }else{
+      const div = document.createElement('div'); div.id = 'yt_'+Math.random().toString(36).slice(2); div.style.cssText='position:absolute;inset:0';
+      wrap.appendChild(div);
+      const id = ytIdFromUrl(cfg.url); const build=()=>{ if(window.YT&&window.YT.Player){ buildVideoPlayer(div,id); } else { setTimeout(build,120);} }; build();
     }
-
-    // Fallback: single video id
-    const div = document.createElement('div'); div.id = 'yt_'+Math.random().toString(36).slice(2); div.style.cssText='position:absolute;inset:0';
-    wrap.appendChild(div);
-    const id = ytIdFromUrl(cfg.url);
-    const build = ()=>{
-      if(window.YT && window.YT.Player){ buildVideoPlayer(div, id); }
-      else { setTimeout(build, 120); }
-    };
-    build();
-
     const meta = document.createElement('div'); meta.className='meta';
     meta.innerHTML = `<div><div class="name">${cfg.who}</div><div class="city">${cfg.city}, ${cfg.state}</div></div>`;
     const right = document.createElement('div'); right.className='actions';
-    const openSrc = document.createElement('a'); openSrc.className='tiny'; openSrc.target='_blank'; openSrc.rel='noopener'; openSrc.href = cfg.url; openSrc.textContent='Open source';
+    const openSrc = document.createElement('a'); openSrc.className='tiny'; openSrc.target='_blank'; openSrc.rel='noopener'; openSrc.href = cfg.url || (`https://www.youtube.com/channel/${encodeURIComponent(cfg.ytChannel||'')}/live`); openSrc.textContent='Open source';
     right.appendChild(openSrc);
-    meta.appendChild(right);
-    card.appendChild(meta);
-    grid.appendChild(card);
+    meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
   }
 
   function addWindyCard(cfg){
     const card = document.createElement('article'); card.className='cam';
     const wrap = document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
-    const slot = document.createElement('div'); slot.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center';
     const a = document.createElement('a');
     a.setAttribute('name','windy-webcam-timelapse-player');
     a.setAttribute('data-id', cfg.windy.id);
     a.setAttribute('data-play', cfg.windy.play || 'day');
     a.setAttribute('data-loop', cfg.windy.loop || '0');
-    a.setAttribute('data-auto-play', cfg.windy.auto || '1');
+    a.setAttribute('data-auto-play', cfg.windy.auto || '0'); // Virag: autoplay disabled
     a.setAttribute('data-force-full-screen-on-overlay-play', cfg.windy.fs || '0');
     a.setAttribute('data-interactive', cfg.windy.interactive || '1');
     a.href = `https://windy.com/webcams/${cfg.windy.id}`;
     a.target = '_blank';
     a.textContent = cfg.windy.title || 'Windy webcam';
-    slot.appendChild(a);
-    wrap.appendChild(slot);
+    a.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center';
+    wrap.appendChild(a);
     ensureWindyScript();
-
     const meta = document.createElement('div'); meta.className='meta';
     meta.innerHTML = `<div><div class="name">${cfg.who}</div><div class="city">${cfg.city}, ${cfg.state}</div></div>`;
     const right = document.createElement('div'); right.className='actions';
     const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href=a.href; open.textContent='Open source';
-    right.appendChild(open);
-    if(cfg.note){ const badge=document.createElement('span'); badge.className='note'; badge.textContent=cfg.note; right.appendChild(badge); }
-    meta.appendChild(right);
-    card.appendChild(meta);
-    grid.appendChild(card);
+    right.appendChild(open); if(cfg.note){ const badge=document.createElement('span'); badge.className='note'; badge.textContent=cfg.note; right.appendChild(badge); }
+    meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
   }
 
   function addSnapshotCard(cfg){
@@ -400,20 +342,55 @@
     wrap.appendChild(stampEl);
     scheduleRefresh(img, cfg.url, cfg.minSec || 15, cfg.maxSec || 30, stampEl);
     card.appendChild(wrap);
-
     const meta = document.createElement('div'); meta.className='meta';
     const right = document.createElement('div'); right.className='actions';
     const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href=cfg.url; open.textContent='Open source';
     right.appendChild(open);
     meta.innerHTML = `<div><div class="name">${cfg.who}</div><div class="city">${cfg.city}, ${cfg.state}</div></div>`;
-    meta.appendChild(right);
-    card.appendChild(meta);
-    grid.appendChild(card);
+    meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
   }
 
-  // Build grid
+  function addLinkCard(cfg){
+    const card = document.createElement('article'); card.className='cam';
+    const wrap = document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;';
+    banner.textContent = cfg.note || 'External camera source';
+    wrap.appendChild(banner);
+    const meta = document.createElement('div'); meta.className='meta';
+    meta.innerHTML = `<div><div class="name">${cfg.who}</div><div class="city">${cfg.city}, ${cfg.state}</div></div>`;
+    const right = document.createElement('div'); right.className='actions';
+    const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href=cfg.url; open.textContent='Open WeatherBug live cam';
+    right.appendChild(open); meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
+  }
+
+  // ---- Cameras list ----
+  const cams = [
+    // Rafael -> YouTube live (Roanoke Hotel RailCam)
+    { who:'Rafael Caballero', kind:'youtube', url:'https://www.youtube.com/watch?v=cV3kP5FSUDk', city:'Roanoke', state:'VA' },
+
+    { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
+    { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
+
+    // Virag – Windy (autoplay disabled)
+    { who:'Virag Doshi',      kind:'windy', windy:{ id:'1662455177', play:'day', loop:'0', auto:'0', fs:'0', interactive:'1', title:'Kopra Village' }, city:'Morbi (regional Gujarat)', state:'India', note:'Feed originates from Mumbai' },
+
+    // Nathan – channel-based live
+    { who:'Nathan Brann',     kind:'youtube', ytChannel:'UCQc7Ol2itgbnMXPjZmPdRRQ', url:'https://www.youtube.com/@apreslin/live', city:'Cincinnati', state:'OH' },
+
+    { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
+    { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
+    { who:'Steve Luton',      kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' },
+
+    // Snapshots
+    { who:'Dallas Munday',    kind:'snapshot+stamp', url:'https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Stony_Brook_at_Princeton/NJ_Stony_Brook_at_Princeton_newest.jpg', city:'Princeton (Stony Brook)', state:'NJ', minSec:15, maxSec:30 },
+    { who:'Steven Levchenko', kind:'snapshot+stamp', url:'https://map.eye-n-sky.net/webcam/Caldwell/Caldwell-East.jpg', city:'Caldwell (near Star/Boise area)', state:'ID', minSec:15, maxSec:30 }
+  ];
+
+  const grid = document.getElementById('camsGrid');
   cams.forEach(c=>{
     if(c.kind==='youtube') addYouTubeCard(c);
+    else if(c.kind==='link') addLinkCard(c);
     else if(c.kind==='windy') addWindyCard(c);
     else if(c.kind.startsWith('snapshot')) addSnapshotCard(c);
   });

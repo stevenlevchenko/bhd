@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Blackhawk Data – Office Dashboard (YouTube keep-live)</title>
+<title>Blackhawk Data – Office Dashboard (11 Tiles + Counter)</title>
 <link rel="preconnect" href="https://www.youtube.com" />
 <link rel="preconnect" href="https://www.youtube-nocookie.com" />
 <link rel="preconnect" href="https://i.ytimg.com" />
@@ -29,12 +29,12 @@
          background:linear-gradient(180deg,rgba(10,15,26,.9),rgba(10,15,26,.6));
          border-bottom:1px solid var(--border)}
   body[data-theme="light"] header{background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.7))}
-  .bar{max-width:1600px;margin:0 auto;padding:14px 18px;display:flex;align-items:center;gap:16px}
+  .bar{max-width:1600px;margin:0 auto;padding:14px 18px;display:flex;align-items:center;gap:12px}
   .logo{height:36px;width:auto}
   .grow{flex:1}
-  .clock{font-variant-numeric:tabular-nums;letter-spacing:1px;font-weight:700;padding:6px 12px;border:1px solid var(--border);
+  .badge{font-variant-numeric:tabular-nums;letter-spacing:.3px;font-weight:700;padding:6px 10px;border:1px solid var(--border);
          border-radius:999px;background:#0b1624}
-  body[data-theme="light"] .clock{background:#edf3ff}
+  body[data-theme="light"] .badge{background:#edf3ff}
   .themebtn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:transparent;color:var(--text);
             padding:6px 10px;border-radius:999px;cursor:pointer;font-size:12px}
   .themebtn:hover{border-color:#2a3a6b}
@@ -85,10 +85,11 @@
     <div class="bar">
       <img class="logo" alt="Blackhawk Data" src="https://blackhawk11.com/wp-content/uploads/2024/12/new-blue-bhd-horizontal-black-blue.png" />
       <div class="grow"></div>
+      <span id="tileCounter" class="badge" title="Rendered tiles">Tiles: --</span>
       <button id="themeBtn" class="themebtn" type="button" aria-label="Toggle color theme">
         <span id="themeIcon">🌙</span><span id="themeText">Dark</span>
       </button>
-      <div id="clock" class="clock" aria-live="polite" style="margin-left:8px">--:--:-- ET</div>
+      <div id="clock" class="badge" aria-live="polite">--:--:-- ET</div>
     </div>
   </header>
 
@@ -267,22 +268,6 @@
     setInterval(nudge, 15000);
     document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') nudge(); }, {passive:true});
   }
-  function nudgeChannelIframe(ifr){
-    try{
-      ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'mute',args:[]}), '*');
-      ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:[]}), '*');
-      ifr.contentWindow?.postMessage(JSON.stringify({event:'command',func:'seekTo',args:[1e7,true]}), '*');
-    }catch{}
-  }
-
-  // ---- Windy helpers ----
-  function ensureWindyScript(){
-    if(document.querySelector('script[data-windy-embed]')) return;
-    const s=document.createElement('script');
-    s.src='https://webcams.windy.com/webcams/public/embed/v2/script/player.js';
-    s.async=true; s.type='text/javascript'; s.setAttribute('data-windy-embed','1');
-    document.body.appendChild(s);
-  }
 
   // ---- Snapshot helpers ----
   function toETString(d){
@@ -326,58 +311,18 @@
   function addYouTubeCard(cfg){
     const card = document.createElement('article'); card.className='cam';
     const wrap = document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
-    if (cfg.ytChannel){
-      const ifr = document.createElement('iframe');
-      ifr.allow = 'autoplay; encrypted-media; picture-in-picture';
-      ifr.allowFullscreen = true;
-      ifr.referrerPolicy = 'no-referrer-when-downgrade';
-      ifr.loading = 'eager';
-      ifr.src = 'https://www.youtube.com/embed/live_stream?channel='
-        + encodeURIComponent(cfg.ytChannel)
-        + '&autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1';
-      ifr.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;display:block';
-      wrap.appendChild(ifr);
-      try{ setInterval(()=>nudgeChannelIframe(ifr), 15000); }catch{}
-    }else{
-      const div = document.createElement('div'); div.id = 'yt_'+Math.random().toString(36).slice(2); div.style.cssText='position:absolute;inset:0';
-      wrap.appendChild(div);
-      const id = ytIdFromUrl(cfg.url);
-      if(id){ buildVideoPlayer(div, id); }
-      else { div.innerHTML = '<div class="muted" style="padding:10px">Unable to parse YouTube ID</div>'; }
-    }
+    const div = document.createElement('div'); div.id = 'yt_'+Math.random().toString(36).slice(2); div.style.cssText='position:absolute;inset:0';
+    wrap.appendChild(div);
+    const id = ytIdFromUrl(cfg.url);
+    if(id){ buildVideoPlayer(div, id); }
+    else { div.innerHTML = '<div class="muted" style="padding:10px">Unable to parse YouTube ID</div>'; }
     const meta = document.createElement('div'); meta.className='meta';
     meta.innerHTML = '<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+cfg.city+', '+cfg.state+'</div></div>';
     const right = document.createElement('div'); right.className='actions';
-    const openSrc = document.createElement('a'); openSrc.className='tiny'; openSrc.target='_blank'; openSrc.rel='noopener'; openSrc.href = cfg.url || ('https://www.youtube.com/channel/'+encodeURIComponent(cfg.ytChannel||'')+'/live'); openSrc.textContent='Open source';
+    const openSrc = document.createElement('a'); openSrc.className='tiny'; openSrc.target='_blank'; openSrc.rel='noopener'; openSrc.href = cfg.url; openSrc.textContent='Open source';
     right.appendChild(openSrc);
     meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
   }
-
-  function addWindyCard(cfg){
-    const card = document.createElement('article'); card.className='cam';
-    const wrap = document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
-    const a = document.createElement('a');
-    a.setAttribute('name','windy-webcam-timelapse-player');
-    a.setAttribute('data-id', cfg.windy.id);
-    a.setAttribute('data-play', cfg.windy.play || 'day');
-    a.setAttribute('data-loop', cfg.windy.loop || '0');
-    a.setAttribute('data-auto-play', cfg.windy.auto || '0'); // autoplay disabled (Virag)
-    a.setAttribute('data-force-full-screen-on-overlay-play', cfg.windy.fs || '0');
-    a.setAttribute('data-interactive', cfg.windy.interactive || '1');
-    a.href = 'https://windy.com/webcams/'+cfg.windy.id;
-    a.target = '_blank';
-    a.textContent = cfg.windy.title || 'Windy webcam';
-    a.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center';
-    wrap.appendChild(a);
-    ensureWindyScript();
-    const meta = document.createElement('div'); meta.className='meta';
-    meta.innerHTML = '<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+cfg.city+', '+cfg.state+'</div></div>';
-    const right = document.createElement('div'); right.className='actions';
-    const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href=a.href; open.textContent='Open source';
-    right.appendChild(open); if(cfg.note){ const badge=document.createElement('span'); badge.className='note'; badge.textContent=cfg.note; right.appendChild(badge); }
-    meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
-  }
-
   function addSnapshotCard(cfg){
     const card = document.createElement('article'); card.className='cam';
     const wrap = document.createElement('div'); wrap.className='snapwrap';
@@ -397,31 +342,26 @@
     meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
   }
 
-  // ---- Cameras list ----
+  // ---- Cameras list (11 tiles) ----
   const cams = [
     { who:'Rafael Caballero', kind:'youtube', url:'https://www.youtube.com/watch?v=cV3kP5FSUDk', city:'Roanoke', state:'VA' },
     { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
     { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
-
-    { who:'Virag Doshi',      kind:'windy', windy:{ id:'1662455177', play:'day', loop:'0', auto:'0', fs:'0', interactive:'1', title:'Kopra Village' }, city:'Morbi (regional Gujarat)', state:'India', note:'Feed originates from Mumbai' },
-
+    { who:'Virag Doshi',      kind:'snapshot+stamp', url:'https://i.windy.com/webcams/33/1662455177/webcam.jpg', city:'Morbi (regional Gujarat)', state:'India', minSec:30, maxSec:60 },
     { who:'Nathan Brann',     kind:'youtube', url:'https://www.youtube.com/watch?v=DK1S8M-YfYk', city:'Cincinnati', state:'OH' },
     { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
-
     { who:'Jacob T',          kind:'youtube', url:'https://www.youtube.com/watch?v=V0ViqZ-QAD0', city:'Jonesborough', state:'TN' },
+    { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
     { who:'Steve Luton',      kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' },
-
-    // Snapshots
     { who:'Dallas Munday',    kind:'snapshot+stamp', url:'https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Stony_Brook_at_Princeton/NJ_Stony_Brook_at_Princeton_newest.jpg', city:'Princeton (Stony Brook)', state:'NJ', minSec:15, maxSec:30 },
     { who:'Steven Levchenko', kind:'snapshot+stamp', url:'https://map.eye-n-sky.net/webcam/Caldwell/Caldwell-East.jpg', city:'Caldwell (near Star/Boise area)', state:'ID', minSec:15, maxSec:30 }
   ];
 
-  // ---- Build grid (resilient) ----
+  // ---- Build grid and update counter ----
   const grid = document.getElementById('camsGrid');
   cams.forEach(c=>{
     try{
       if(c.kind==='youtube') addYouTubeCard(c);
-      else if(c.kind==='windy') addWindyCard(c);
       else if(c.kind && c.kind.startsWith('snapshot')) addSnapshotCard(c);
     }catch(err){
       const card = document.createElement('article'); card.className='cam';
@@ -434,6 +374,14 @@
       console.error('Tile error for', c, err);
     }
   });
+
+  const counterEl = document.getElementById('tileCounter');
+  function updateCounter(){
+    counterEl.textContent = 'Tiles: ' + grid.childElementCount;
+  }
+  updateCounter();
+  new MutationObserver(updateCounter).observe(grid, {childList:true});
+
 </script>
 </body>
 </html>

@@ -132,7 +132,6 @@
   </main>
 
 <script>
-  // Helper: "Firstname L."
   function formatName(n){
     try{
       if(!n) return '';
@@ -144,7 +143,6 @@
     }catch(e){ return n; }
   }
 
-  // Theme toggle
   const themeBtn = document.getElementById('themeBtn');
   const themeIcon = document.getElementById('themeIcon');
   const themeText = document.getElementById('themeText');
@@ -164,7 +162,6 @@
     applyTheme(cur === 'dark' ? 'light' : 'dark');
   });
 
-  // ET clock
   const clockEl = document.getElementById('clock');
   function tick(){
     try{
@@ -176,7 +173,6 @@
   }
   tick();
 
-  // Subway (heuristic ETAs)
   const penn=encodeURIComponent('34 St–Penn Station, New York, NY');
   const routes=[
     {name:'Grand Central–42 St',addr:'Grand Central Terminal, NYC',base:[9,12],peak:[11,16]},
@@ -219,7 +215,6 @@
   }
   renderETAs(); setInterval(renderETAs,5*60*1000);
 
-  // ---- YouTube helpers (autoplay + keep-live for all) ----
   (function(){ const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api'; s.async=true; document.head.appendChild(s); })();
   function ytIdFromUrl(u){
     try{
@@ -269,7 +264,14 @@
     document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') nudge(); }, {passive:true});
   }
 
-  // ---- Snapshot helpers ----
+  function ensureWindyScript(){
+    if(document.querySelector('script[data-windy-embed]')) return;
+    const s=document.createElement('script');
+    s.src='https://webcams.windy.com/webcams/public/embed/v2/script/player.js';
+    s.async=true; s.type='text/javascript'; s.setAttribute('data-windy-embed','1');
+    document.body.appendChild(s);
+  }
+
   function toETString(d){
     try{
       return new Intl.DateTimeFormat('en-US',{
@@ -307,7 +309,6 @@
     doRefresh();
   }
 
-  // ---- Card builders ----
   function addYouTubeCard(cfg){
     const card = document.createElement('article'); card.className='cam';
     const wrap = document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
@@ -321,6 +322,30 @@
     const right = document.createElement('div'); right.className='actions';
     const openSrc = document.createElement('a'); openSrc.className='tiny'; openSrc.target='_blank'; openSrc.rel='noopener'; openSrc.href = cfg.url; openSrc.textContent='Open source';
     right.appendChild(openSrc);
+    meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
+  }
+  function addWindyCard(cfg){
+    const card = document.createElement('article'); card.className='cam';
+    const wrap = document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
+    const a = document.createElement('a');
+    a.setAttribute('name','windy-webcam-timelapse-player');
+    a.setAttribute('data-id', cfg.windy.id);
+    a.setAttribute('data-play', cfg.windy.play || 'day');
+    a.setAttribute('data-loop', cfg.windy.loop || '0');
+    a.setAttribute('data-auto-play', cfg.windy.auto || '0');
+    a.setAttribute('data-force-full-screen-on-overlay-play', cfg.windy.fs || '0');
+    a.setAttribute('data-interactive', cfg.windy.interactive || '1');
+    a.href = 'https://windy.com/webcams/'+cfg.windy.id;
+    a.target = '_blank';
+    a.textContent = cfg.windy.title || 'Windy webcam';
+    a.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center';
+    wrap.appendChild(a);
+    ensureWindyScript();
+    const meta = document.createElement('div'); meta.className='meta';
+    meta.innerHTML = '<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+cfg.city+', '+cfg.state+'</div></div>';
+    const right = document.createElement('div'); right.className='actions';
+    const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href=a.href; open.textContent='Open source';
+    right.appendChild(open); if(cfg.note){ const badge=document.createElement('span'); badge.className='note'; badge.textContent=cfg.note; right.appendChild(badge); }
     meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
   }
   function addSnapshotCard(cfg){
@@ -342,26 +367,25 @@
     meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
   }
 
-  // ---- Cameras list (11 tiles) ----
   const cams = [
     { who:'Rafael Caballero', kind:'youtube', url:'https://www.youtube.com/watch?v=cV3kP5FSUDk', city:'Roanoke', state:'VA' },
     { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
     { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
-    { who:'Virag Doshi',      kind:'snapshot+stamp', url:'https://i.windy.com/webcams/33/1662455177/webcam.jpg', city:'Morbi (regional Gujarat)', state:'India', minSec:30, maxSec:60 },
+    { who:'Virag Doshi',      kind:'windy', windy:{ id:'1662455177', play:'day', loop:'0', auto:'0', fs:'0', interactive:'1', title:'Kopra Village' }, city:'Morbi (regional Gujarat)', state:'India', note:'Feed originates from Mumbai' },
     { who:'Nathan Brann',     kind:'youtube', url:'https://www.youtube.com/watch?v=DK1S8M-YfYk', city:'Cincinnati', state:'OH' },
     { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
-    { who:'Jacob T',          kind:'youtube', url:'https://www.youtube.com/watch?v=V0ViqZ-QAD0', city:'Jonesborough', state:'TN' },
+    { who:'Jacob T',          kind:'youtube', url:'https://www.youtube.com/watch?v=HSZDWRE5m2o', city:'Chattanooga', state:'TN' },
     { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
     { who:'Steve Luton',      kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' },
     { who:'Dallas Munday',    kind:'snapshot+stamp', url:'https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Stony_Brook_at_Princeton/NJ_Stony_Brook_at_Princeton_newest.jpg', city:'Princeton (Stony Brook)', state:'NJ', minSec:15, maxSec:30 },
     { who:'Steven Levchenko', kind:'snapshot+stamp', url:'https://map.eye-n-sky.net/webcam/Caldwell/Caldwell-East.jpg', city:'Caldwell (near Star/Boise area)', state:'ID', minSec:15, maxSec:30 }
   ];
 
-  // ---- Build grid and update counter ----
   const grid = document.getElementById('camsGrid');
   cams.forEach(c=>{
     try{
       if(c.kind==='youtube') addYouTubeCard(c);
+      else if(c.kind==='windy') addWindyCard(c);
       else if(c.kind && c.kind.startsWith('snapshot')) addSnapshotCard(c);
     }catch(err){
       const card = document.createElement('article'); card.className='cam';
@@ -376,12 +400,9 @@
   });
 
   const counterEl = document.getElementById('tileCounter');
-  function updateCounter(){
-    counterEl.textContent = 'Tiles: ' + grid.childElementCount;
-  }
+  function updateCounter(){ counterEl.textContent = 'Tiles: ' + grid.childElementCount; }
   updateCounter();
   new MutationObserver(updateCounter).observe(grid, {childList:true});
-
 </script>
 </body>
 </html>

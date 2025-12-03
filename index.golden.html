@@ -368,7 +368,7 @@
   }
 
   const cams = [
-    { who:'Rafael Caballero', kind:'url', url:'https://www.nps.gov/shen/learn/photosmultimedia/shenvalleycam.htm', city:'Roanoke', state:'VA' },
+    { who:'Rafael Caballero', kind:'youtube', url:'https://www.youtube.com/watch?v=cV3kP5FSUDk', city:'Roanoke', state:'VA' },
     { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
     { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
     { who:'Virag Doshi',      kind:'youtube', url:'https://www.youtube.com/watch?v=ThcgSkE3Z6Q', city:'Kerala', state:'India' },
@@ -386,7 +386,7 @@
     try{
       if(c.kind==='youtube') addYouTubeCard(c);
       else if(c.kind==='windy') addWindyCard(c);
-      else if(c.kind && c.kind.startsWith('snapshot')) addSnapshotCard(c); else if(c.kind==='url') addUrlCard(c);
+      else if(c.kind && c.kind.startsWith('snapshot')) addSnapshotCard(c);
     }catch(err){
       const card = document.createElement('article'); card.className='cam';
       const wrap = document.createElement('div'); wrap.className='media'; wrap.innerHTML='<div class="muted" style="padding:10px">Failed to render tile</div>';

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Blackhawk Data – Dashboard (NYC first, Virag last, 11 tiles)</title>
+<title>Blackhawk Data – Office Dashboard (11 Tiles + Counter)</title>
 <link rel="preconnect" href="https://www.youtube.com" />
 <link rel="preconnect" href="https://www.youtube-nocookie.com" />
 <link rel="preconnect" href="https://i.ytimg.com" />
@@ -11,230 +11,419 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#0a0f1a;--card:#0f1726;--muted:#7d8aa5;--accent:#1e90ff;--border:#1b2440;--text:#e6eefc;--radius:16px}
-  *{box-sizing:border-box} html,body{height:100%}
-  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);background:var(--bg)}
-  header{position:sticky;top:0;z-index:10;background:#0b1220;border-bottom:1px solid var(--border);backdrop-filter:blur(8px)}
-  .bar{max-width:1600px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:10px}
-  .grow{flex:1} .badge{font-variant-numeric:tabular-nums;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#0b1624}
-  main{max-width:1600px;margin:16px auto;padding:0 16px 24px}
-  .grid{display:grid;gap:16px;grid-template-columns:repeat(12,1fr);grid-auto-rows:minmax(160px,auto)}
-  .tile{grid-column:span 12;background:#0e1729;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
-  .tile h2{margin:0;padding:10px 12px;font-size:16px;border-bottom:1px solid var(--border);background:#0b1424}
+  :root{
+    --bg:#0a0f1a;--card:#0f1726;--muted:#7d8aa5;--accent:#1e90ff;--border:#1b2440;
+    --text:#e6eefc;--chip:#0b1627;--chipb:#1f2a3d;--good:#5bd37f;--warn:#ffcc66;--bad:#ff6b6b;
+    --radius:16px;
+  }
+  body[data-theme="light"]{
+    --bg:#f7f9fc;--card:#ffffff;--muted:#5a6b85;--accent:#1068d6;--border:#dfe6f2;
+    --text:#0e1726;--chip:#eef3fb;--chipb:#d3def0;--good:#1f9e4a;--warn:#b88300;--bad:#d12f2f;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);
+       background:radial-gradient(1100px 800px at 80% -10%,rgba(30,144,255,.08),transparent 60%),var(--bg)}
+  a{color:var(--accent);text-decoration:none}
+  header{position:sticky;top:0;z-index:40;backdrop-filter:blur(8px);
+         background:linear-gradient(180deg,rgba(10,15,26,.9),rgba(10,15,26,.6));
+         border-bottom:1px solid var(--border)}
+  body[data-theme="light"] header{background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.7))}
+  .bar{max-width:1600px;margin:0 auto;padding:14px 18px;display:flex;align-items:center;gap:12px}
+  .logo{height:36px;width:auto}
+  .grow{flex:1}
+  .badge{font-variant-numeric:tabular-nums;letter-spacing:.3px;font-weight:700;padding:6px 10px;border:1px solid var(--border);
+         border-radius:999px;background:#0b1624}
+  body[data-theme="light"] .badge{background:#edf3ff}
+  .themebtn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:transparent;color:var(--text);
+            padding:6px 10px;border-radius:999px;cursor:pointer;font-size:12px}
+  .themebtn:hover{border-color:#2a3a6b}
+  main{max-width:1600px;margin:20px auto;padding:0 18px 28px}
+  .grid{display:grid;gap:18px;grid-template-columns:repeat(12,1fr);grid-auto-rows:minmax(160px,auto)}
+  .tile{grid-column:span 12;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+        overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.15);display:flex;flex-direction:column}
+  .tile h2{margin:0;padding:12px 14px;font-size:16px;font-weight:700;letter-spacing:.3px;border-bottom:1px solid var(--border);
+           background:linear-gradient(180deg,rgba(255,255,255,.02),transparent)}
+  body[data-theme="light"] .tile{box-shadow:0 8px 28px rgba(10,30,60,.06)}
   .tile .content{padding:12px}
-  .cams-grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr)}
-  .cam{grid-column:span 12;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#000;display:flex;flex-direction:column}
-  @media(min-width:700px){.cam{grid-column:span 6}} @media(min-width:1200px){.cam{grid-column:span 4}.cam.small{grid-column:span 3}}
+  .muted{color:var(--muted)}
+  .cams-grid{display:grid;gap:14px;grid-template-columns:repeat(12,1fr)}
+  .cam{grid-column:span 12;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:#0c131c;display:flex;flex-direction:column}
+  body[data-theme="light"] .cam{background:#ffffff}
+  @media (min-width:700px){.cam{grid-column:span 6}}
+  @media (min-width:1200px){.cam{grid-column:span 4}}
   .media{position:relative;width:100%;padding-top:56.25%;background:#000}
   .media iframe,.media img{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}
-  .meta{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;background:#0b1624;border-top:1px solid var(--border)}
-  .name{font-weight:700;font-size:14px} .city{font-size:12px;color:#9bb2d6}
-  .tiny{font-size:11px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:#0c1428;color:#9fdcff;cursor:pointer}
-  /* Snapshot stamp */
+  .meta{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#0b1624;border-top:1px solid var(--border)}
+  body[data-theme="light"] .meta{background:#f5f8ff}
+  .name{font-weight:700;font-size:14px}
+  .city{font-size:12px;color:#a0b2cf}
+  body[data-theme="light"] .city{color:#456088}
+  .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .tiny{font-size:11px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:#0c1428;color:#0ee;cursor:pointer}
+  body[data-theme="light"] .tiny{background:#eef3ff;color:#0e1726}
+  .note{font-size:11px;color:#8aa6cf;background:#0b1627;border:1px solid var(--chipb);padding:4px 8px;border-radius:999px}
+  body[data-theme="light"] .note{color:#315a92;background:#e9f1ff;border-color:#cfe2ff}
+  .square{aspect-ratio:4/3;background:#000;border-top:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .square iframe{width:100%;height:100%;border:0;display:block}
+  .subway-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+  .route{border:1px dashed var(--border);border-radius:12px;padding:12px;background:rgba(255,255,255,.02);display:flex;flex-direction:column;gap:10px}
+  .route h3{margin:0;font-size:14px}
+  .eta{display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+  .chip{padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--chipb);background:var(--chip);color:#5b6f8f}
+  body[data-theme="light"] .chip{color:#31435c}
+  .eta .mins{font-weight:700}.eta.good .mins{color:var(--good)}.eta.warn .mins{color:var(--warn)}.eta.bad .mins{color:var(--bad)}
   .snapwrap{position:relative;width:100%;padding-top:56.25%;background:#000}
   .snapwrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;background:#000}
   .snapwrap .stamp{position:absolute;left:8px;bottom:8px;font-size:12px;padding:6px 8px;border-radius:10px;border:1px solid var(--border);
-                   background:rgba(10,15,26,.6);backdrop-filter:blur(6px);color:var(--text)}
+                   background:rgba(10,15,26,.6);backdrop-filter:blur(6px)}
+  body[data-theme="light"] .snapwrap .stamp{background:rgba(255,255,255,.65)}
 </style>
 </head>
 <body>
   <header>
     <div class="bar">
-      <strong>Blackhawk Data — Engineer Weather Cams</strong>
+      <img class="logo" alt="Blackhawk Data" src="https://blackhawk11.com/wp-content/uploads/2024/12/new-blue-bhd-horizontal-black-blue.png" />
       <div class="grow"></div>
-      <span id="tileCounter" class="badge">Tiles: --</span>
-      <span id="clock" class="badge">--:--:-- ET</span>
+      <span id="tileCounter" class="badge" title="Rendered tiles">Tiles: --</span>
+      <button id="themeBtn" class="themebtn" type="button" aria-label="Toggle color theme">
+        <span id="themeIcon">🌙</span><span id="themeText">Dark</span>
+      </button>
+      <div id="clock" class="badge" aria-live="polite">--:--:-- ET</div>
     </div>
   </header>
 
   <main>
     <div class="grid">
-      <section class="tile">
-        <h2>Engineer Weather Cams – Autoplay/Snapshots</h2>
+      <section class="tile" id="subway">
+        <h2>Subway Travel Times – from 34 St–Penn Station</h2>
+        <div class="content">
+          <p class="muted" style="margin-top:0">Quick ETAs by time-of-day. Click to open live options in Google Maps.</p>
+          <div class="subway-list" id="subwayList"></div>
+        </div>
+      </section>
+
+      <section class="tile" id="engineer-cams">
+        <h2>Engineer Weather Cams – Autoplay</h2>
         <div class="content">
           <div class="cams-grid" id="camsGrid"></div>
-          <p class="muted" style="margin-top:8px">YouTube tiles autoplay muted. Snapshot tiles show a timestamp and refresh automatically.</p>
+          <p class="muted" style="margin-top:10px">Muted by default for autoplay. Click anywhere if a browser requires a user gesture.</p>
+        </div>
+      </section>
+
+      <section class="tile">
+        <h2>Live Traffic (Waze)</h2>
+        <div class="content">
+          <div class="square">
+            <iframe src="https://embed.waze.com/iframe?zoom=14&lat=40.7529&lon=-73.9926&ct=livemap&pin=1&traffic=true" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+          </div>
+        </div>
+      </section>
+
+      <section class="tile">
+        <h2>Weather (Windy)</h2>
+        <div class="content">
+          <div class="square">
+            <iframe title="Windy" src="https://embed.windy.com/embed2.html?lat=40.7506&lon=-73.9935&detailLat=40.7506&detailLon=-73.9935&width=100%25&height=100%25&zoom=12&level=surface&overlay=wind&product=ecmwf&marker=true&menu=&message=&pressure=&type=map&location=coordinates&metricWind=mph&metricTemp=%C2%B0F" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+          </div>
         </div>
       </section>
     </div>
   </main>
 
 <script>
-  // Clock
-  const clockEl=document.getElementById('clock');
-  function tick(){ try{ const s=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour12:false,timeStyle:'medium'}).format(new Date()); clockEl.textContent=s+' ET'; }catch{ clockEl.textContent=new Date().toLocaleTimeString()+' ET'; } requestAnimationFrame(()=>setTimeout(tick,500)); } tick();
-
-  // Name formatter (Firstname L. when a space exists)
   function formatName(n){
-    const s=String(n||'').trim();
-    if(!s) return s;
-    const parts=s.split(/\s+/);
-    if(parts.length<2) return s;
-    return parts[0] + ' ' + parts[1][0].toUpperCase() + '.';
+    try{
+      if(!n) return '';
+      const parts = String(n).trim().split(/\s+/);
+      const first = parts[0] || '';
+      const last = parts.length > 1 ? parts[parts.length-1] : '';
+      const initial = last ? (last[0].toUpperCase() + '.') : '';
+      return initial ? (first + ' ' + initial) : first;
+    }catch(e){ return n; }
   }
 
-  // YouTube API + keep-live
+  const themeBtn = document.getElementById('themeBtn');
+  const themeIcon = document.getElementById('themeIcon');
+  const themeText = document.getElementById('themeText');
+  function applyTheme(t){
+    document.body.setAttribute('data-theme', t);
+    if(t === 'light'){ themeIcon.textContent='☀️'; themeText.textContent='Light'; }
+    else { themeIcon.textContent='🌙'; themeText.textContent='Dark'; }
+    localStorage.setItem('bh-theme', t);
+  }
+  (function initTheme(){
+    const saved = localStorage.getItem('bh-theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(saved || (prefersDark ? 'dark':'light'));
+  })();
+  themeBtn.addEventListener('click', ()=>{
+    const cur = document.body.getAttribute('data-theme') || 'dark';
+    applyTheme(cur === 'dark' ? 'light' : 'dark');
+  });
+
+  const clockEl = document.getElementById('clock');
+  function tick(){
+    try{
+      const now = new Date();
+      const s = new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour12:false,timeStyle:'medium'}).format(now);
+      clockEl.textContent = s + ' ET';
+    }catch{ clockEl.textContent = new Date().toLocaleTimeString() + ' ET'; }
+    requestAnimationFrame(()=>setTimeout(tick,500));
+  }
+  tick();
+
+  const penn=encodeURIComponent('34 St–Penn Station, New York, NY');
+  const routes=[
+    {name:'Grand Central–42 St',addr:'Grand Central Terminal, NYC',base:[9,12],peak:[11,16]},
+    {name:'Times Sq–42 St',addr:'Times Square, NYC',base:[5,7],peak:[6,9]},
+    {name:'Fulton St (FiDi)',addr:'Fulton St Station, NYC',base:[14,20],peak:[18,26]},
+    {name:'Atlantic Av–Barclays (Bklyn)',addr:'Barclays Center, Brooklyn',base:[22,30],peak:[28,38]},
+    {name:'Jamaica Center (Queens)',addr:'Jamaica Center–Parsons/Archer Station',base:[38,50],peak:[45,60]}
+  ];
+  function isPeak(dt){
+    const z=new Date(dt.toLocaleString('en-US',{timeZone:'America/New_York'}));
+    const d=z.getDay(),h=z.getHours(),m=z.getMinutes(),t=h+m/60;
+    return d>=1&&d<=5&&((t>=7&&t<10)||(t>=16&&t<19));
+  }
+  function etaClass(mins){
+    if(mins[1]<=15)return'good';
+    if(mins[1]<=35)return'warn';
+    return'bad';
+  }
+  function renderETAs(){
+    const peak=isPeak(new Date());
+    const list=document.getElementById('subwayList');
+    list.innerHTML='';
+    routes.forEach(r=>{
+      const span=peak?r.peak:r.base;
+      const cls=etaClass(span);
+      const url=`https://www.google.com/maps/dir/?api=1&origin=${penn}&destination=${encodeURIComponent(r.addr)}&travelmode=transit`;
+      const el=document.createElement('div');
+      el.className='route';
+      el.innerHTML = [
+        '<h3>'+r.name+'</h3>',
+        '<div class="eta '+cls+'">',
+          '<span class="chip">'+(peak?'Peak':'Off-peak')+'</span>',
+          '<span class="mins">'+span[0]+'–'+span[1]+' min</span>',
+        '</div>',
+        '<div class="muted">Open for live options & exact ETAs.</div>',
+        '<a class="tiny" target="_blank" href="'+url+'">Open route</a>'
+      ].join('');
+      list.appendChild(el);
+    });
+  }
+  renderETAs(); setInterval(renderETAs,5*60*1000);
+
   (function(){ const s=document.createElement('script'); s.src='https://www.youtube.com/iframe_api'; s.async=true; document.head.appendChild(s); })();
-  function ytIdFromUrl(u){ try{ const url=new URL(u); if(url.hostname.includes('youtu')){ if(url.pathname.startsWith('/watch')) return url.searchParams.get('v'); if(url.hostname==='youtu.be') return url.pathname.slice(1); const m=url.pathname.match(/\/embed\/([A-Za-z0-9_\-]+)/); if(m) return m[1]; return url.searchParams.get('v'); } }catch{} return null; }
+  function ytIdFromUrl(u){
+    try{
+      const url = new URL(u);
+      if(url.hostname.includes('youtube') || url.hostname.includes('youtu.be')){
+        if(url.pathname.startsWith('/watch')) return url.searchParams.get('v');
+        const m = url.pathname.match(/\/embed\/([A-Za-z0-9_\-]+)/); if(m) return m[1];
+        if(url.hostname==='youtu.be'){ return url.pathname.slice(1); }
+        const s = url.searchParams.get('v'); if(s) return s;
+      }
+    }catch{}
+    return null;
+  }
   function buildVideoPlayer(el, videoId){
     if(!window.YT || !window.YT.Player){ setTimeout(()=>buildVideoPlayer(el, videoId), 150); return; }
-    const p=new YT.Player(el,{ videoId, playerVars:{autoplay:1,mute:1,playsinline:1,rel:0,controls:1,modestbranding:1},
-      events:{ onReady:(e)=>{ try{e.target.mute(); e.target.playVideo();}catch{} },
-        onStateChange:(e)=>{ if([YT.PlayerState.PAUSED,YT.PlayerState.UNSTARTED,YT.PlayerState.ENDED].includes(e.data)){ try{e.target.playVideo();}catch{} } } } });
-    setInterval(()=>{ try{ if(p.getPlayerState&&p.getPlayerState()!==YT.PlayerState.PLAYING){ p.playVideo(); } p.mute(); }catch{} },15000);
+    const p = new YT.Player(el, {
+      videoId,
+      playerVars:{autoplay:1,mute:1,playsinline:1,rel:0,controls:1,modestbranding:1},
+      events:{
+        onReady:(e)=>{ try{ e.target.mute(); e.target.playVideo(); }catch{} },
+        onStateChange:(e)=>{
+          if(e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.UNSTARTED){
+            try{ e.target.playVideo(); }catch{}
+          }
+          if(e.data === YT.PlayerState.ENDED){
+            try{ e.target.playVideo(); }catch{}
+          }
+        }
+      }
+    });
+    const nudge = () => {
+      try{
+        const st = p.getPlayerState ? p.getPlayerState() : null;
+        if(st !== YT.PlayerState.PLAYING){
+          p.playVideo();
+        }
+        const dur = (typeof p.getDuration === 'function') ? p.getDuration() : 0;
+        if(dur && Number.isFinite(dur) && dur > 30){
+          p.seekTo(dur - 1, true);
+        } else {
+          if(typeof p.seekTo === 'function'){ p.seekTo(1e7, true); }
+        }
+        p.mute();
+      }catch{}
+    };
+    setInterval(nudge, 15000);
+    document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') nudge(); }, {passive:true});
   }
 
-  // Snapshot helpers
-  function toETString(d){ try{ return new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(d)+' ET'; }catch{ return d.toISOString(); } }
-  async function tryLastModified(url){ try{ const r=await fetch(url,{method:'HEAD',cache:'no-store'}); const lm=r.headers.get('Last-Modified'); if(lm){ const dt=new Date(lm); if(!isNaN(dt)) return dt; } }catch{} return null; }
+  function ensureWindyScript(){
+    if(document.querySelector('script[data-windy-embed]')) return;
+    const s=document.createElement('script');
+    s.src='https://webcams.windy.com/webcams/public/embed/v2/script/player.js';
+    s.async=true; s.type='text/javascript'; s.setAttribute('data-windy-embed','1');
+    document.body.appendChild(s);
+  }
+
+  function toETString(d){
+    try{
+      return new Intl.DateTimeFormat('en-US',{
+        timeZone:'America/New_York',hour12:false,
+        year:'numeric',month:'2-digit',day:'2-digit',
+        hour:'2-digit',minute:'2-digit',second:'2-digit'
+      }).format(d) + ' ET';
+    }catch{ return d.toISOString(); }
+  }
+  async function tryLastModified(url){
+    try{
+      const res = await fetch(url, { method:'HEAD', cache:'no-store' });
+      const lm = res.headers.get('Last-Modified');
+      if(lm){ const dt = new Date(lm); if(!isNaN(dt)) return dt; }
+    }catch{}
+    return null;
+  }
   function scheduleRefresh(imgEl, baseUrl, minSec, maxSec, stampEl){
     async function doRefresh(){
-      const bust=Date.now(); const full=baseUrl+(baseUrl.includes('?')?'&':'?')+'t='+bust;
-      let when=null; try{ const dt=await tryLastModified(baseUrl); if(dt) when=toETString(dt)+' (server)'; }catch{}
-      imgEl.onload=()=>{ if(!when) when=toETString(new Date())+' (local)'; if(stampEl) stampEl.textContent='Updated: '+when; };
-      imgEl.src=full;
-      const delay=minSec*1000+Math.random()*((maxSec-minSec)*1000); setTimeout(doRefresh, Math.round(delay));
+      const bust = Date.now();
+      const full = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 't=' + bust;
+      let whenLabel = null;
+      try{
+        const dt = await tryLastModified(baseUrl);
+        if(dt){ whenLabel = toETString(dt) + ' (server)'; }
+      }catch{}
+      imgEl.onload = () => {
+        if(!whenLabel){ whenLabel = toETString(new Date()) + ' (local)'; }
+        if(stampEl){ stampEl.textContent = 'Updated: ' + whenLabel; }
+      };
+      imgEl.src = full;
+      const delay = (minSec*1000) + Math.random() * ((maxSec-minSec)*1000);
+      setTimeout(doRefresh, Math.round(delay));
     }
     doRefresh();
   }
 
-  // Card builders
   function addYouTubeCard(cfg){
-    const card=document.createElement('article'); card.className='cam';
-    const wrap=document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
-    const mount=document.createElement('div'); mount.style.cssText='position:absolute;inset:0'; wrap.appendChild(mount);
-    const id=ytIdFromUrl(cfg.url);
-    if(id) buildVideoPlayer(mount,id); else mount.innerHTML='<div style="color:#9bb2d6;display:flex;align-items:center;justify-content:center">Invalid YouTube URL</div>';
-    const meta=document.createElement('div'); meta.className='meta';
-    meta.innerHTML='<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+cfg.city+', '+cfg.state+'</div></div>';
-    const actions=document.createElement('div');
-    const open=document.createElement('a'); open.className='tiny'; open.href=cfg.url; open.target='_blank'; open.rel='noopener'; open.textContent='Open source';
-    actions.appendChild(open); meta.appendChild(actions); card.appendChild(meta); grid.appendChild(card);
+    const card = document.createElement('article'); card.className='cam';
+    const wrap = document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
+    const div = document.createElement('div'); div.id = 'yt_'+Math.random().toString(36).slice(2); div.style.cssText='position:absolute;inset:0';
+    wrap.appendChild(div);
+    const id = ytIdFromUrl(cfg.url);
+    if(id){ buildVideoPlayer(div, id); }
+    else { div.innerHTML = '<div class="muted" style="padding:10px">Unable to parse YouTube ID</div>'; }
+    const meta = document.createElement('div'); meta.className='meta';
+    meta.innerHTML = '<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+cfg.city+', '+cfg.state+'</div></div>';
+    const right = document.createElement('div'); right.className='actions';
+    const openSrc = document.createElement('a'); openSrc.className='tiny'; openSrc.target='_blank'; openSrc.rel='noopener'; openSrc.href = cfg.url; openSrc.textContent='Open source';
+    right.appendChild(openSrc);
+    meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
+  }
+  function addWindyCard(cfg){
+    const card = document.createElement('article'); card.className='cam';
+    const wrap = document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
+    const a = document.createElement('a');
+    a.setAttribute('name','windy-webcam-timelapse-player');
+    a.setAttribute('data-id', cfg.windy.id);
+    a.setAttribute('data-play', cfg.windy.play || 'day');
+    a.setAttribute('data-loop', cfg.windy.loop || '0');
+    a.setAttribute('data-auto-play', cfg.windy.auto || '0');
+    a.setAttribute('data-force-full-screen-on-overlay-play', cfg.windy.fs || '0');
+    a.setAttribute('data-interactive', cfg.windy.interactive || '1');
+    a.href = 'https://windy.com/webcams/'+cfg.windy.id;
+    a.target = '_blank';
+    a.textContent = cfg.windy.title || 'Windy webcam';
+    a.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center';
+    wrap.appendChild(a);
+    ensureWindyScript();
+    const meta = document.createElement('div'); meta.className='meta';
+    meta.innerHTML = '<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+cfg.city+', '+cfg.state+'</div></div>';
+    const right = document.createElement('div'); right.className='actions';
+    const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href=a.href; open.textContent='Open source';
+    right.appendChild(open); if(cfg.note){ const badge=document.createElement('span'); badge.className='note'; badge.textContent=cfg.note; right.appendChild(badge); }
+    meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
   }
   function addSnapshotCard(cfg){
-    const card=document.createElement('article'); card.className='cam';
-    const wrap=document.createElement('div'); wrap.className='snapwrap';
-    const img=document.createElement('img'); img.alt=(cfg.city||'')+', '+(cfg.state||'')+' – refreshing image'; img.referrerPolicy='no-referrer';
+    const card = document.createElement('article'); card.className='cam';
+    const wrap = document.createElement('div'); wrap.className='snapwrap';
+    const img = document.createElement('img');
+    img.alt = cfg.city+', '+cfg.state+' – refreshing image';
+    img.referrerPolicy = 'no-referrer';
     wrap.appendChild(img);
-    const stamp=document.createElement('div'); stamp.className='stamp'; stamp.textContent='Updated: …'; wrap.appendChild(stamp);
-    scheduleRefresh(img, cfg.url, cfg.minSec||15, cfg.maxSec||30, stamp);
+    const stampEl = document.createElement('div'); stampEl.className='stamp'; stampEl.textContent='Updated: …';
+    wrap.appendChild(stampEl);
+    scheduleRefresh(img, cfg.url, cfg.minSec || 15, cfg.maxSec || 30, stampEl);
     card.appendChild(wrap);
-    const meta=document.createElement('div'); meta.className='meta';
-    meta.innerHTML='<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+cfg.city+', '+cfg.state+'</div></div>';
-    const actions=document.createElement('div');
-    const open=document.createElement('a'); open.className='tiny'; open.href=cfg.url; open.target='_blank'; open.rel='noopener'; open.textContent='Open source';
-    actions.appendChild(open); meta.appendChild(actions); card.appendChild(meta); grid.appendChild(card);
+    const meta = document.createElement('div'); meta.className='meta';
+    const right = document.createElement('div'); right.className='actions';
+    const open = document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener'; open.href=cfg.url; open.textContent='Open source';
+    right.appendChild(open);
+    meta.innerHTML = '<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+cfg.city+', '+cfg.state+'</div></div>';
+    meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
   }
-  
-function addUrlCard(cfg){
-  const card=document.createElement('article'); card.className='cam';
-  const wrap=document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
 
-  const ifr=document.createElement('iframe');
-  ifr.src = cfg.url;
-  ifr.loading = 'eager';                    // prefer immediate load to test embed
-  ifr.referrerPolicy = 'no-referrer-when-downgrade';
-  ifr.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
-  ifr.setAttribute('allowfullscreen','');
-  wrap.appendChild(ifr);
-
-  // Fallback overlay if the frame appears blocked/blank
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;background:transparent;pointer-events:none';
-  const openBtn = document.createElement('a');
-  openBtn.className='tiny'; openBtn.textContent='Open source';
-  openBtn.href = cfg.url; openBtn.target='_blank'; openBtn.rel='noopener';
-  openBtn.style.pointerEvents='auto';
-  const note = document.createElement('span');
-  note.className='tiny'; note.textContent='(embed may be blocked)';
-  overlay.appendChild(openBtn); overlay.appendChild(note);
-  wrap.appendChild(overlay);
-
-  // Heuristic: if no onload within 4s, keep overlay visible; otherwise hide it
-  let loaded=false;
-  ifr.addEventListener('load', ()=>{ loaded=true; overlay.style.display='none'; });
-  setTimeout(()=>{ if(!loaded){ overlay.style.display='flex'; } }, 4000);
-
-  // Periodic refresh to recover from stalls (every 120s)
-  setInterval(()=>{
-    try{
-      const base = cfg.url.split('#')[0];
-      const sep = base.includes('?') ? '&' : '?';
-      ifr.src = base + sep + 't=' + Date.now();
-    }catch{}
-  }, 120000);
-
-  const meta=document.createElement('div'); meta.className='meta';
-  meta.innerHTML='<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+(cfg.city||'')+', '+(cfg.state||'')+'</div></div>';
-  const actions=document.createElement('div');
-  const open=document.createElement('a'); open.className='tiny'; open.href=cfg.url; open.target='_blank'; open.rel='noopener'; open.textContent='Open source';
-  actions.appendChild(open);
-  meta.appendChild(actions); card.appendChild(meta); grid.appendChild(card);
-}
-// Cams — 11 entries, NYC first, Virag last. Nathan omitted.
-  const cams=[
-    { who:'NYC',              kind:'youtube', url:'https://www.youtube.com/watch?v=TsgoxkRFit0', city:'New York City', state:'NY' },
-    { who:'Rafael Caballero', kind:'snapshot+stamp', url:'https://wjla.com/resources/ftptransfer/wjla/maps/WEB_WINCHESTER.jpg', city:'Roanoke', state:'VA', minSec:30, maxSec:30 },
+  const cams = [
+  { who:'New York City', kind:'youtube', url:'https://www.youtube.com/watch?v=TsgoxkRFit0', city:'New York City', state:'NY' },
+    { who:'Rafael Caballero', kind:'snapshot+stamp', url:'https://wjla.com/resources/ftptransfer/wjla/maps/WEB_WINCHESTER.jpg', city:'Winchester', state:'VA', minSec:30, maxSec:30 },
     { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
     { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
-    { who:'Jacob T',          kind:'youtube', url:'https://www.youtube.com/watch?v=FzOvl5DgMjQ', city:'Dallas', state:'TX' },
+    { who:'Virag Doshi', kind:'windyMap', lat:23.0225, lon:72.5714, zoom:6, city:'Gujarat', state:'India' },
+    { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
+    { who:'Jacob T',          kind:'youtube', url:'https://www.youtube.com/watch?v=WNSkLhEWbuY', city:'Dallas', state:'TX' },
     { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
     { who:'Steve Luton',      kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' },
-    { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
     { who:'Dallas Munday',    kind:'snapshot+stamp', url:'https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Stony_Brook_at_Princeton/NJ_Stony_Brook_at_Princeton_newest.jpg', city:'Princeton (Stony Brook)', state:'NJ', minSec:15, maxSec:30 },
-    { who:'Steven Levchenko', kind:'snapshot+stamp', url:'https://map.eye-n-sky.net/webcam/Caldwell/Caldwell-East.jpg', city:'Caldwell (near Star/Boise area)', state:'ID', minSec:15, maxSec:30 },
-    { who:'Virag Doshi', kind:'windy', lat:23.0225, lon:72.5714, zoom:6, city:'Gujarat', state:'India' }
+    { who:'Steven Levchenko', kind:'snapshot+stamp', url:'https://map.eye-n-sky.net/webcam/Caldwell/Caldwell-East.jpg', city:'Caldwell (near Star/Boise area)', state:'ID', minSec:15, maxSec:30 }
   ];
 
-  // Build grid (snapshot first ensures Rafael/Dallas/Steven render correctly)
-  const grid=document.getElementById('camsGrid');
+  const grid = document.getElementById('camsGrid');
   cams.forEach(c=>{
     try{
-      if(c.kind && c.kind.startsWith('snapshot')) addSnapshotCard(c);
-      else if(c.kind==='youtube') addYouTubeCard(c);
-      else if(c.kind==='url') addUrlCard(c); else if(c.kind==='windy') addWindyCard(c);
-      else { throw new Error('Unknown kind: '+c.kind); }
+      if(c.kind==='youtube') addYouTubeCard(c); else if(c.kind==='windy') addWindyCard(c); else if(c.kind==='windyMap') addWindyMapCard(c); else if(c.kind && c.kind.startsWith('snapshot')) addSnapshotCard(c);
     }catch(err){
-      const card=document.createElement('article'); card.className='cam';
-      const wrap=document.createElement('div'); wrap.className='media'; wrap.innerHTML='<div style="color:#9bb2d6;padding:10px">Failed to render tile</div>';
+      const card = document.createElement('article'); card.className='cam';
+      const wrap = document.createElement('div'); wrap.className='media'; wrap.innerHTML='<div class="muted" style="padding:10px">Failed to render tile</div>';
       card.appendChild(wrap);
-      const meta=document.createElement('div'); meta.className='meta';
-      meta.innerHTML='<div><div class="name">'+formatName(c.who||'Unknown')+'</div><div class="city">'+(c.city||'')+', '+(c.state||'')+'</div></div>';
-      const actions=document.createElement('div'); const open=document.createElement('a'); open.className='tiny'; open.href=c.url||'#'; open.target='_blank'; open.rel='noopener'; open.textContent='Open source';
-      actions.appendChild(open); meta.appendChild(actions); card.appendChild(meta); grid.appendChild(card);
+      const meta = document.createElement('div'); meta.className='meta';
+      meta.innerHTML = '<div><div class="name">'+formatName(c.who||'Unknown')+'</div><div class="city">'+(c.city||'')+', '+(c.state||'')+'</div></div>';
+      card.appendChild(meta);
+      grid.appendChild(card);
       console.error('Tile error for', c, err);
     }
   });
 
-  // Counter
-  const counterEl=document.getElementById('tileCounter');
-  function updateCounter(){ counterEl.textContent='Tiles: '+grid.childElementCount; }
-  updateCounter(); new MutationObserver(updateCounter).observe(grid,{childList:true});
+  const counterEl = document.getElementById('tileCounter');
+  function updateCounter(){ counterEl.textContent = 'Tiles: ' + grid.childElementCount; }
+  updateCounter();
+  new MutationObserver(updateCounter).observe(grid, {childList:true});
 
-  function addWindyCard(cfg){
-    const card=document.createElement('article'); card.className='cam' + (cfg.small?' small':'');
+  function addWindyMapCard(cfg){
+    const card=document.createElement('article'); card.className='cam';
     const wrap=document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
-    const lat = cfg.lat ?? 23.0225, lon = cfg.lon ?? 72.5714;
-    const zoom = cfg.zoom ?? 6;
-    const params = new URLSearchParams({
-      lat: String(lat), lon: String(lon),
-      detailLat: String(lat), detailLon: String(lon),
-      zoom: String(zoom), level: 'surface', overlay: cfg.overlay || 'wind',
-      product: 'ecmwf',
-      menu: '', message: 'false', marker: 'false', detail: 'false',
-      calendar: 'now', pressure: 'false', type: 'map', location: 'coordinates',
-      metricWind: 'mph', metricTemp: '°F', radarRange: '-1'
+    const lat=cfg.lat??23.0225, lon=cfg.lon??72.5714, zoom=cfg.zoom??6;
+    const params=new URLSearchParams({
+      lat:String(lat), lon:String(lon),
+      detailLat:String(lat), detailLon:String(lon),
+      zoom:String(zoom), level:'surface', overlay:cfg.overlay||'wind',
+      product:'ecmwf', menu:'', message:'false', marker:'false', detail:'false',
+      calendar:'now', pressure:'false', type:'map', location:'coordinates',
+      metricWind:'mph', metricTemp:'°F', radarRange:'-1'
     });
     const ifr=document.createElement('iframe');
-    ifr.src = 'https://embed.windy.com/embed2.html?' + params.toString();
+    ifr.src='https://embed.windy.com/embed2.html?'+params.toString();
     ifr.loading='lazy'; ifr.referrerPolicy='no-referrer-when-downgrade'; ifr.allow='fullscreen';
     wrap.appendChild(ifr);
     const meta=document.createElement('div'); meta.className='meta';
     meta.innerHTML='<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+(cfg.city||'')+', '+(cfg.state||'')+'</div></div>';
-    const actions=document.createElement('div');
-    const open=document.createElement('a'); open.className='tiny'; open.href= 'https://www.windy.com/?'+params.toString(); open.target='_blank'; open.rel='noopener'; open.textContent='Open source';
-    actions.appendChild(open);
-    meta.appendChild(actions); card.appendChild(meta); grid.appendChild(card);
+    const right=document.createElement('div');
+    const open=document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener';
+    open.href='https://www.windy.com/?'+params.toString(); open.textContent='Open source';
+    right.appendChild(open); meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
   }
 
 </script>

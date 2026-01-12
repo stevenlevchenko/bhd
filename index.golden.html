@@ -125,35 +125,65 @@
     const open=document.createElement('a'); open.className='tiny'; open.href=cfg.url; open.target='_blank'; open.rel='noopener'; open.textContent='Open source';
     actions.appendChild(open); meta.appendChild(actions); card.appendChild(meta); grid.appendChild(card);
   }
-  function addUrlCard(cfg){
-    const card=document.createElement('article'); card.className='cam';
-    const wrap=document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
-    const ifr=document.createElement('iframe');
-    ifr.src = cfg.url;
-    ifr.loading = 'lazy';
-    ifr.referrerPolicy = 'no-referrer-when-downgrade';
-    ifr.allow = 'autoplay; fullscreen; picture-in-picture';
-    wrap.appendChild(ifr);
-    const meta=document.createElement('div'); meta.className='meta';
-    meta.innerHTML='<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+(cfg.city||'')+', '+(cfg.state||'')+'</div></div>';
-    const actions=document.createElement('div');
-    const open=document.createElement('a'); open.className='tiny'; open.href=cfg.url; open.target='_blank'; open.rel='noopener'; open.textContent='Open source';
-    actions.appendChild(open); meta.appendChild(actions); card.appendChild(meta); grid.appendChild(card);
-  }
+  
+function addUrlCard(cfg){
+  const card=document.createElement('article'); card.className='cam';
+  const wrap=document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
 
-  // Cams — 11 entries, NYC first, Virag last. Nathan omitted.
+  const ifr=document.createElement('iframe');
+  ifr.src = cfg.url;
+  ifr.loading = 'eager';                    // prefer immediate load to test embed
+  ifr.referrerPolicy = 'no-referrer-when-downgrade';
+  ifr.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
+  ifr.setAttribute('allowfullscreen','');
+  wrap.appendChild(ifr);
+
+  // Fallback overlay if the frame appears blocked/blank
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;background:transparent;pointer-events:none';
+  const openBtn = document.createElement('a');
+  openBtn.className='tiny'; openBtn.textContent='Open source';
+  openBtn.href = cfg.url; openBtn.target='_blank'; openBtn.rel='noopener';
+  openBtn.style.pointerEvents='auto';
+  const note = document.createElement('span');
+  note.className='tiny'; note.textContent='(embed may be blocked)';
+  overlay.appendChild(openBtn); overlay.appendChild(note);
+  wrap.appendChild(overlay);
+
+  // Heuristic: if no onload within 4s, keep overlay visible; otherwise hide it
+  let loaded=false;
+  ifr.addEventListener('load', ()=>{ loaded=true; overlay.style.display='none'; });
+  setTimeout(()=>{ if(!loaded){ overlay.style.display='flex'; } }, 4000);
+
+  // Periodic refresh to recover from stalls (every 120s)
+  setInterval(()=>{
+    try{
+      const base = cfg.url.split('#')[0];
+      const sep = base.includes('?') ? '&' : '?';
+      ifr.src = base + sep + 't=' + Date.now();
+    }catch{}
+  }, 120000);
+
+  const meta=document.createElement('div'); meta.className='meta';
+  meta.innerHTML='<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+(cfg.city||'')+', '+(cfg.state||'')+'</div></div>';
+  const actions=document.createElement('div');
+  const open=document.createElement('a'); open.className='tiny'; open.href=cfg.url; open.target='_blank'; open.rel='noopener'; open.textContent='Open source';
+  actions.appendChild(open);
+  meta.appendChild(actions); card.appendChild(meta); grid.appendChild(card);
+}
+// Cams — 11 entries, NYC first, Virag last. Nathan omitted.
   const cams=[
     { who:'NYC',              kind:'youtube', url:'https://www.youtube.com/watch?v=TsgoxkRFit0', city:'New York City', state:'NY' },
     { who:'Rafael Caballero', kind:'snapshot+stamp', url:'https://wjla.com/resources/ftptransfer/wjla/maps/WEB_WINCHESTER.jpg', city:'Roanoke', state:'VA', minSec:30, maxSec:30 },
     { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
     { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
-    { who:'Jacob T',          kind:'youtube', url:'https://www.youtube.com/watch?v=V0ViqZ-QAD0', city:'Jonesborough', state:'TN' },
+    { who:'Jacob T',          kind:'youtube', url:'https://www.youtube.com/watch?v=FzOvl5DgMjQ', city:'Dallas', state:'TX' },
     { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
     { who:'Steve Luton',      kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' },
     { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
     { who:'Dallas Munday',    kind:'snapshot+stamp', url:'https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Stony_Brook_at_Princeton/NJ_Stony_Brook_at_Princeton_newest.jpg', city:'Princeton (Stony Brook)', state:'NJ', minSec:15, maxSec:30 },
     { who:'Steven Levchenko', kind:'snapshot+stamp', url:'https://map.eye-n-sky.net/webcam/Caldwell/Caldwell-East.jpg', city:'Caldwell (near Star/Boise area)', state:'ID', minSec:15, maxSec:30 },
-    { who:'Virag Doshi',      kind:'url',     url:'https://myearthcam.com/kaliking', city:'', state:'' }
+    { who:'Virag Doshi',      kind:'url',     url:'https://myearthcam.com/kaliking', city:'India', state:'' }
   ];
 
   // Build grid (snapshot first ensures Rafael/Dallas/Steven render correctly)

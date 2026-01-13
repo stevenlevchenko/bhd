@@ -368,13 +368,13 @@
   }
 
   const cams = [
-  { who:'New York City', kind:'youtube', url:'https://www.youtube.com/watch?v=TsgoxkRFit0', city:'New York City', state:'NY' },
+  { who:'NYC', kind:'youtube', url:'https://www.youtube.com/watch?v=TsgoxkRFit0', city:'New York City', state:'NY'  },
     { who:'Rafael Caballero', kind:'snapshot+stamp', url:'https://wjla.com/resources/ftptransfer/wjla/maps/WEB_WINCHESTER.jpg', city:'Winchester', state:'VA', minSec:30, maxSec:30 },
     { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
     { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
-    { who:'Virag Doshi', kind:'windyMap', lat:23.0225, lon:72.5714, zoom:6, city:'Gujarat', state:'India' },
+    { who:'Virag Doshi', kind:'windyMap', lat:23.0225, lon:72.5714, zoom:6, city:'Gujarat', state:'India' , overlay:'rain' },
     { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
-    { who:'Jacob T',          kind:'youtube', url:'https://www.youtube.com/watch?v=WNSkLhEWbuY', city:'Dallas', state:'TX' },
+    { who:'Jacob T',          kind:'youtube', url:'https://www.youtube.com/watch?v=FzOvl5DgMjQ', city:'Dallas', state:'TX' },
     { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
     { who:'Steve Luton',      kind:'youtube', url:'https://www.youtube.com/watch?v=E_VpviMTH9k', city:'Denver', state:'CO' },
     { who:'Dallas Munday',    kind:'snapshot+stamp', url:'https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Stony_Brook_at_Princeton/NJ_Stony_Brook_at_Princeton_newest.jpg', city:'Princeton (Stony Brook)', state:'NJ', minSec:15, maxSec:30 },
@@ -425,6 +425,27 @@
     open.href='https://www.windy.com/?'+params.toString(); open.textContent='Open source';
     right.appendChild(open); meta.appendChild(right); card.appendChild(meta); grid.appendChild(card);
   }
+
+
+  // --- QA: simple release checks ---
+  (function(){
+    try{
+      const expected = (Array.isArray(cams) ? cams.length : 0);
+      const rendered = grid ? grid.childElementCount : 0;
+      const badge = document.getElementById('tileCounter');
+      if(badge){
+        const ok = (rendered === expected);
+        badge.title = ok ? 'QA: OK' : ('QA: expected '+expected+', rendered '+rendered);
+        if(!ok){ badge.style.background = '#5a2b2b'; badge.style.borderColor = '#b84a4a'; }
+      }
+      // Name presence check
+      const names = new Set(Array.from(document.querySelectorAll('.meta .name')).map(n=>n.textContent.trim()));
+      const missing = (cams||[]).map(c=>c.who).filter(w=>!names.has(w) && !names.has((w||'').split(' ')[0] + ' ' + (w||'').split(' ')[1]?.[0].toUpperCase() + '.'));
+      if(missing.length){
+        console.warn('QA missing tiles:', missing);
+      }
+    }catch(e){ console.warn('QA check failed', e); }
+  })();
 
 </script>
 </body>

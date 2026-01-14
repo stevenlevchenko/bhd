@@ -372,7 +372,7 @@
     { who:'Rafael Caballero', kind:'snapshot+stamp', url:'https://wjla.com/resources/ftptransfer/wjla/maps/WEB_WINCHESTER.jpg', city:'Winchester', state:'VA', minSec:30, maxSec:30 },
     { who:'Lauren Gonzalez',  kind:'youtube', url:'https://www.youtube.com/watch?v=wUQc3RoLAPs', city:'Houston', state:'TX' },
     { who:'Joe Golemb',       kind:'youtube', url:'https://www.youtube.com/watch?v=ATbtGvbExP4', city:'Nashville', state:'TN' },
-    { who:'Virag Doshi', kind:'windyMap', lat:22.817, lon:70.837, zoom:9, city:'Morbi', state:'Gujarat, India' , overlay:'wind' },
+    { who:'Virag Doshi', kind:'windyMap', lat:22.817, lon:70.837, zoom:9, city:'Gujarat', state:'India' , overlay:'rain' },
     { who:'Noah Herald',      kind:'youtube', url:'https://www.youtube.com/watch?v=a89gExUKAu4', city:'Greensboro (Triad)', state:'NC' },
     { who:'Jacob T',          kind:'youtube', url:'https://www.youtube.com/watch?v=FzOvl5DgMjQ', city:'Dallas', state:'TX' },
     { who:'Jake Fitzgerald',  kind:'youtube', url:'https://www.youtube.com/watch?v=i07IVN7ZKek', city:'Manchester / NH region', state:'NH' },
@@ -402,66 +402,18 @@
   updateCounter();
   new MutationObserver(updateCounter).observe(grid, {childList:true});
 
-  
   function addWindyMapCard(cfg){
     const card=document.createElement('article'); card.className='cam';
     const wrap=document.createElement('div'); wrap.className='media'; card.appendChild(wrap);
-
-    const lat = cfg.lat ?? 22.817, lon = cfg.lon ?? 70.837, zoom = cfg.zoom ?? 9;
-    let metricTemp = (cfg.metricTemp || '°F'); // default °F, toggleable
-    const overlay = cfg.overlay || 'wind';
-    const product = cfg.product || 'ecmwf';
-
-    function buildSrc(){
-      const params = new URLSearchParams({
-        lat:String(lat), lon:String(lon),
-        detailLat:String(lat), detailLon:String(lon),
-        zoom:String(zoom), level:'surface', overlay,
-        product, menu:'', message:'false', marker:'false', detail:'false',
-        calendar:'now', pressure:'false', type:'map', location:'coordinates',
-        metricWind:'mph', metricTemp:metricTemp, radarRange:'-1'
-      });
-      return 'https://embed.windy.com/embed2.html?' + params.toString();
-    }
-
-    const ifr=document.createElement('iframe');
-    ifr.src = buildSrc();
-    ifr.loading='lazy'; ifr.referrerPolicy='no-referrer-when-downgrade'; ifr.allow='fullscreen';
-    wrap.appendChild(ifr);
-
-    // Unit toggle overlay
-    const ctrl=document.createElement('div');
-    ctrl.style.cssText='position:absolute;top:8px;right:8px;display:flex;gap:6px;';
-    const cBtn=document.createElement('button'); cBtn.className='tiny'; cBtn.textContent='°C';
-    const fBtn=document.createElement('button'); fBtn.className='tiny'; fBtn.textContent='°F';
-    function setActive(){
-      cBtn.style.opacity = (metricTemp==='°C') ? '1' : '0.6';
-      fBtn.style.opacity = (metricTemp==='°F') ? '1' : '0.6';
-    }
-    cBtn.onclick=()=>{ metricTemp='°C'; ifr.src=buildSrc(); setActive(); };
-    fBtn.onclick=()=>{ metricTemp='°F'; ifr.src=buildSrc(); setActive(); };
-    setActive();
-    ctrl.appendChild(cBtn); ctrl.appendChild(fBtn);
-    wrap.appendChild(ctrl);
-
-    const meta=document.createElement('div'); meta.className='meta';
-    meta.innerHTML='<div><div class="name">'+formatName(cfg.who)+'</div><div class="city">'+(cfg.city||"")+ (cfg.state? ', '+cfg.state : '')+'</div></div>';
-    const right=document.createElement('div');
-    const open=document.createElement('a'); open.className='tiny'; open.target='_blank'; open.rel='noopener';
-    const openParams = new URLSearchParams({
+    const lat=cfg.lat??23.0225, lon=cfg.lon??72.5714, zoom=cfg.zoom??6;
+    const params=new URLSearchParams({
       lat:String(lat), lon:String(lon),
       detailLat:String(lat), detailLon:String(lon),
-      zoom:String(zoom), level:'surface', overlay,
-      product, menu:'', message:'false', marker:'false', detail:'false',
+      zoom:String(zoom), level:'surface', overlay:cfg.overlay||'wind',
+      product:'ecmwf', menu:'', message:'false', marker:'false', detail:'false',
       calendar:'now', pressure:'false', type:'map', location:'coordinates',
-      metricWind:'mph', metricTemp:metricTemp, radarRange:'-1'
+      metricWind:'mph', metricTemp:'°F', radarRange:'-1'
     });
-    open.href='https://www.windy.com/?'+openParams.toString();
-    open.textContent='Open source';
-    right.appendChild(open); meta.appendChild(right);
-    card.appendChild(meta); grid.appendChild(card);
-  }
-);
     const ifr=document.createElement('iframe');
     ifr.src='https://embed.windy.com/embed2.html?'+params.toString();
     ifr.loading='lazy'; ifr.referrerPolicy='no-referrer-when-downgrade'; ifr.allow='fullscreen';

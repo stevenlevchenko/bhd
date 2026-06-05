@@ -7,35 +7,37 @@
 <meta name="robots" content="noindex, nofollow" />
 <title>BlackHawk Data — Office Dashboard</title>
 
+<link rel="preconnect" href="https://www.youtube.com" />
+<link rel="preconnect" href="https://www.youtube-nocookie.com" />
+<link rel="preconnect" href="https://i.ytimg.com" />
+<link rel="preconnect" href="https://api.open-meteo.com" />
+
 <!--
   BlackHawk Data Office Dashboard
   =================================
   Single-file static page. No build step, no dependencies. Drop-in replacement
   for GitHub Pages.
 
-  DATA SOURCES (all keyless, CORS-enabled, no tracking):
-    - Clock:   Intl.DateTimeFormat with America/New_York (auto EST/EDT, never drifts)
-    - Weather: Open-Meteo  https://open-meteo.com/  (CC BY 4.0, non-commercial)
-    - Trains:  Optional JSON proxy (see MTA_PROXY below). Falls back to official
-               MTA real-time links + scheduled headways if unset/unreachable.
+  CAMS: Six engineers have confirmed-working live sources, ported verbatim from
+        the original page (YouTube live via IFrame API, autoplay+muted, with a
+        seek-to-live-edge nudge loop; plus refreshing USGS/eye-n-sky snapshots).
+        The remaining engineers fall back to a live Open-Meteo sky tile
+        (keyless, CORS, no tracking) showing day/night + conditions.
 
-  PRIVACY: Engineers shown as first name + city only. Coordinates are
-           city-center (privacy radius >> 50 mi requirement). No street addresses.
+  TRAINS: Time-of-day ETA model (same as original). GitHub Pages cannot call the
+          MTA protobuf feed directly (CORS + protobuf). To upgrade to live
+          to-the-minute arrivals, set MTA_PROXY below to a JSON proxy
+          (self-hosted Cloudflare Worker recommended).
 
-  TO ENABLE LIVE TRAIN TIMES:
-    Set MTA_PROXY to a JSON proxy that returns MTAPI-style output for the
-    A/C/E Penn Station stop. A self-hosted Cloudflare Worker is the most
-    reliable long-term option (your tenant already runs Cloudflare tunnels).
-    Leave it as "" to ship the safe schedule-based fallback.
+  CLOCK: Intl.DateTimeFormat + America/New_York -> auto EST/EDT, never drifts.
+  PRIVACY: First name + last initial, city only. No street addresses. noindex.
 -->
 
 <style>
-  /* ---------- THEME TOKENS (BlackHawk palette) ---------- */
   :root {
-    --bhd-blue:      #0067b1;   /* logo blue */
+    --bhd-blue:      #0067b1;
     --bhd-blue-deep: #004a80;
     --bhd-blue-soft: #e8f2fb;
-
     --bg:        #f4f6f9;
     --surface:   #ffffff;
     --surface-2: #fbfcfe;
@@ -46,201 +48,127 @@
     --accent-ink:#ffffff;
     --good:      #1f9d55;
     --warn:      #d97706;
+    --bad:       #d12f2f;
     --shadow:    0 1px 2px rgba(15,24,34,.06), 0 8px 24px rgba(15,24,34,.06);
-
-    --day-top:   #7fb9e6;
-    --day-bot:   #cfe7fb;
-    --night-top: #0b1c3a;
-    --night-bot: #1f3a63;
+    --day-top:   #7fb9e6;  --day-bot:  #cfe7fb;
+    --night-top: #0b1c3a;  --night-bot:#1f3a63;
   }
   html[data-theme="dark"] {
-    --bg:        #0b0f14;
-    --surface:   #131a22;
-    --surface-2: #182230;
-    --ink:       #eef3f8;
-    --ink-soft:  #9fb0c0;
-    --line:      #243140;
-    --bhd-blue:  #3b9ae0;
-    --bhd-blue-soft:#11283c;
-    --accent:    #3b9ae0;
-    --shadow:    0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45);
+    --bg:#0b0f14; --surface:#131a22; --surface-2:#182230;
+    --ink:#eef3f8; --ink-soft:#9fb0c0; --line:#243140;
+    --bhd-blue:#3b9ae0; --bhd-blue-soft:#11283c; --accent:#3b9ae0;
+    --good:#5bd37f; --warn:#ffcc66; --bad:#ff6b6b;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45);
   }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    background:
-      radial-gradient(1200px 600px at 12% -10%, var(--bhd-blue-soft), transparent 60%),
-      var(--bg);
+    background: radial-gradient(1200px 600px at 12% -10%, var(--bhd-blue-soft), transparent 60%), var(--bg);
     color: var(--ink);
     font-family: "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
-    line-height: 1.45;
-    -webkit-font-smoothing: antialiased;
-    min-height: 100vh;
+    line-height: 1.45; -webkit-font-smoothing: antialiased; min-height: 100vh;
   }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 22px 18px 64px; }
 
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 22px 18px 64px; }
-
-  /* ---------- HEADER ---------- */
+  /* HEADER */
   header.top {
+    position: sticky; top: 0; z-index: 40;
     display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    padding: 14px 18px; margin-bottom: 22px;
-    background: var(--surface); border: 1px solid var(--line);
-    border-radius: 16px; box-shadow: var(--shadow);
+    padding: 12px 18px; margin-bottom: 22px;
+    background: color-mix(in srgb, var(--surface) 86%, transparent);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow);
   }
   .logo { height: 34px; width: auto; display: block; }
   html[data-theme="dark"] .logo { filter: brightness(0) invert(1); }
   .top-spacer { flex: 1 1 auto; }
-
   .clock {
-    font-variant-numeric: tabular-nums;
-    font-weight: 700; font-size: clamp(1.1rem, 2.4vw, 1.6rem);
-    letter-spacing: .5px; color: var(--ink);
+    font-variant-numeric: tabular-nums; font-weight: 700;
+    font-size: clamp(1.05rem, 2.2vw, 1.5rem); letter-spacing: .5px;
     display: flex; align-items: baseline; gap: 8px;
   }
-  .clock .zone { font-size: .62em; font-weight: 600; color: var(--ink-soft); letter-spacing: 1px; }
-  .clock .date { display:block; font-size:.5em; font-weight:600; color:var(--ink-soft); letter-spacing:.5px; }
-
+  .clock .zone { font-size:.62em; font-weight:600; color:var(--ink-soft); letter-spacing:1px; }
+  .clock .date { display:block; font-size:.5em; font-weight:600; color:var(--ink-soft); }
+  .badge {
+    font-size:.74rem; font-weight:600; color:var(--ink-soft);
+    border:1px solid var(--line); background:var(--surface-2);
+    padding:5px 10px; border-radius:999px;
+  }
   .theme-btn {
-    appearance: none; cursor: pointer;
-    border: 1px solid var(--line); background: var(--surface-2);
-    color: var(--ink); border-radius: 999px;
-    padding: 8px 14px; font-size: .85rem; font-weight: 600;
-    display: inline-flex; align-items: center; gap: 7px;
-    transition: background .15s, border-color .15s;
+    appearance:none; cursor:pointer; border:1px solid var(--line);
+    background:var(--surface-2); color:var(--ink); border-radius:999px;
+    padding:8px 14px; font-size:.85rem; font-weight:600;
+    display:inline-flex; align-items:center; gap:7px; transition:border-color .15s;
   }
   .theme-btn:hover { border-color: var(--accent); }
 
-  /* ---------- SECTION ---------- */
   section { margin-bottom: 30px; }
-  .sec-head { display: flex; align-items: baseline; gap: 10px; margin: 0 2px 12px; }
-  .sec-head h2 {
-    font-size: 1.04rem; margin: 0; letter-spacing: .2px;
-    text-transform: uppercase; color: var(--ink);
-  }
-  .sec-head .hint { font-size: .82rem; color: var(--ink-soft); }
-  .sec-head::before {
-    content: ""; width: 4px; height: 18px; border-radius: 3px;
-    background: var(--accent); align-self: center;
-  }
+  .sec-head { display:flex; align-items:baseline; gap:10px; margin:0 2px 12px; }
+  .sec-head h2 { font-size:1.04rem; margin:0; text-transform:uppercase; letter-spacing:.2px; }
+  .sec-head .hint { font-size:.82rem; color:var(--ink-soft); }
+  .sec-head::before { content:""; width:4px; height:18px; border-radius:3px; background:var(--accent); align-self:center; }
 
-  /* ---------- TRAINS ---------- */
-  .station-card {
-    background: var(--surface); border: 1px solid var(--line);
-    border-radius: 16px; box-shadow: var(--shadow); overflow: hidden;
-  }
-  .station-top {
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    padding: 14px 18px; border-bottom: 1px solid var(--line);
-    background: var(--surface-2);
-  }
-  .station-name { font-weight: 700; }
-  .station-sub { font-size: .82rem; color: var(--ink-soft); }
-  .feed-state {
-    margin-left: auto; font-size: .74rem; font-weight: 600;
-    padding: 4px 10px; border-radius: 999px;
-    border: 1px solid var(--line); color: var(--ink-soft);
-    display: inline-flex; align-items: center; gap: 6px;
-  }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-soft); }
-  .feed-state.live .dot { background: var(--good); animation: pulse 1.8s infinite; }
-  .feed-state.sched .dot { background: var(--warn); }
+  /* TRAINS */
+  .station-card { background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
+  .station-top { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:14px 18px; border-bottom:1px solid var(--line); background:var(--surface-2); }
+  .station-name { font-weight:700; }
+  .station-sub { font-size:.82rem; color:var(--ink-soft); }
+  .feed-state { margin-left:auto; font-size:.74rem; font-weight:600; padding:4px 10px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft); display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--ink-soft); }
+  .feed-state.live .dot { background:var(--good); animation:pulse 1.8s infinite; }
+  .feed-state.sched .dot { background:var(--warn); }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  .routes { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); padding:16px 18px; }
+  .route { border:1px dashed var(--line); border-radius:12px; padding:13px; display:flex; flex-direction:column; gap:9px; background:var(--surface-2); }
+  .route h3 { margin:0; font-size:.95rem; }
+  .eta { display:flex; align-items:center; gap:8px; font-variant-numeric:tabular-nums; }
+  .chip-band { padding:2px 9px; border-radius:999px; font-size:.74rem; border:1px solid var(--line); color:var(--ink-soft); background:var(--surface); }
+  .eta .mins { font-weight:700; font-size:1.02rem; }
+  .eta.good .mins { color:var(--good); } .eta.warn .mins { color:var(--warn); } .eta.bad .mins { color:var(--bad); }
+  .route .sub { font-size:.78rem; color:var(--ink-soft); }
+  .route a.open { font-size:.78rem; font-weight:600; color:var(--accent); align-self:flex-start; border:1px solid var(--line); padding:6px 11px; border-radius:999px; background:var(--surface); }
+  .route a.open:hover { border-color:var(--accent); background:var(--bhd-blue-soft); }
 
-  .dirs { display: grid; grid-template-columns: 1fr 1fr; }
-  @media (max-width: 620px){ .dirs { grid-template-columns: 1fr; } }
-  .dir { padding: 16px 18px; }
-  .dir + .dir { border-left: 1px solid var(--line); }
-  @media (max-width: 620px){ .dir + .dir { border-left: 0; border-top: 1px solid var(--line); } }
-  .dir h3 { margin: 0 0 4px; font-size: .82rem; text-transform: uppercase; color: var(--ink-soft); letter-spacing: .4px; }
-  .dir .toward { font-size: .78rem; color: var(--ink-soft); margin-bottom: 12px; }
-
-  .arrival { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px dashed var(--line); }
-  .arrival:first-of-type { border-top: 0; }
-  .bullet {
-    width: 30px; height: 30px; border-radius: 50%; flex: 0 0 auto;
-    display: grid; place-items: center; font-weight: 800; color: #fff;
-    font-size: .95rem; box-shadow: inset 0 0 0 2px rgba(255,255,255,.25);
-  }
-  .bullet.A, .bullet.C, .bullet.E { background: #0039a6; } /* IND 8th Ave blue */
-  .arr-min { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 700; }
-  .arr-min small { font-weight: 600; color: var(--ink-soft); font-size: .7em; }
-  .sched-line { font-size: .85rem; color: var(--ink-soft); padding: 6px 0; }
-
-  .links-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 18px 16px; border-top: 1px solid var(--line); }
-  .chip {
-    text-decoration: none; font-size: .8rem; font-weight: 600;
-    color: var(--accent); border: 1px solid var(--line);
-    background: var(--surface-2); padding: 7px 12px; border-radius: 999px;
-    transition: border-color .15s, background .15s;
-  }
-  .chip:hover { border-color: var(--accent); background: var(--bhd-blue-soft); }
-
-  /* ---------- ENGINEER TILES ---------- */
-  .grid {
-    display: grid; gap: 16px;
-    grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
-  }
-  .eng {
-    background: var(--surface); border: 1px solid var(--line);
-    border-radius: 16px; box-shadow: var(--shadow); overflow: hidden;
-    display: flex; flex-direction: column;
-  }
-  .sky {
-    position: relative; height: 124px; overflow: hidden;
-    background: linear-gradient(180deg, var(--day-top), var(--day-bot));
-    transition: background .6s ease;
-  }
-  .sky.night { background: linear-gradient(180deg, var(--night-top), var(--night-bot)); }
-  .sky .celest {
-    position: absolute; width: 46px; height: 46px; border-radius: 50%;
-    left: 50%; transform: translateX(-50%);
-    transition: top .6s ease, background .6s ease, box-shadow .6s ease;
-  }
-  .sky .sun   { background: radial-gradient(circle at 40% 40%, #fff6cf, #ffcf45); box-shadow: 0 0 38px 10px rgba(255,200,70,.55); }
-  .sky .moon  { background: radial-gradient(circle at 38% 38%, #fdfdff, #cdd6e6); box-shadow: 0 0 26px 4px rgba(200,215,255,.35); }
+  /* ENGINEER GRID */
+  .grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); }
+  .eng { background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column; }
+  /* live media (youtube / snapshot) */
+  .media { position:relative; width:100%; padding-top:56.25%; background:#000; }
+  .media iframe, .media img, .media > div { position:absolute; inset:0; width:100%; height:100%; border:0; display:block; }
+  .media img { object-fit:contain; background:#000; }
+  .stamp { position:absolute; left:8px; bottom:8px; font-size:.72rem; padding:5px 8px; border-radius:9px; border:1px solid rgba(255,255,255,.25); background:rgba(0,0,0,.55); color:#fff; backdrop-filter:blur(6px); }
+  /* sky fallback tile */
+  .sky { position:relative; height:0; padding-top:56.25%; overflow:hidden; background:linear-gradient(180deg,var(--day-top),var(--day-bot)); transition:background .6s ease; }
+  .sky.night { background:linear-gradient(180deg,var(--night-top),var(--night-bot)); }
+  .sky .celest { position:absolute; width:44px; height:44px; border-radius:50%; left:50%; transform:translateX(-50%); transition:top .6s ease; }
+  .sky .sun  { background:radial-gradient(circle at 40% 40%,#fff6cf,#ffcf45); box-shadow:0 0 38px 10px rgba(255,200,70,.55); }
+  .sky .moon { background:radial-gradient(circle at 38% 38%,#fdfdff,#cdd6e6); box-shadow:0 0 26px 4px rgba(200,215,255,.35); }
   .sky .stars { position:absolute; inset:0; opacity:0; transition:opacity .6s; }
   .sky.night .stars { opacity:.85; }
-  .sky .temp {
-    position: absolute; left: 14px; bottom: 10px;
-    font-size: 1.7rem; font-weight: 800; color: #fff;
-    text-shadow: 0 1px 6px rgba(0,0,0,.45); font-variant-numeric: tabular-nums;
-  }
-  .sky .cond {
-    position: absolute; right: 14px; bottom: 12px; text-align: right;
-    color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.45);
-    font-size: .82rem; font-weight: 600; max-width: 58%;
-  }
+  .sky .temp { position:absolute; left:14px; bottom:10px; font-size:1.7rem; font-weight:800; color:#fff; text-shadow:0 1px 6px rgba(0,0,0,.45); font-variant-numeric:tabular-nums; }
+  .sky .cond { position:absolute; right:14px; bottom:12px; text-align:right; color:#fff; text-shadow:0 1px 6px rgba(0,0,0,.45); font-size:.82rem; font-weight:600; max-width:60%; }
   .sky .localtime { position:absolute; right:14px; top:10px; color:#fff; font-size:.72rem; font-weight:600; opacity:.92; text-shadow:0 1px 4px rgba(0,0,0,.4); font-variant-numeric:tabular-nums; }
-  .sky.loading::after {
-    content:"Loading…"; position:absolute; inset:0; display:grid; place-items:center;
-    color:#fff; font-size:.85rem; font-weight:600; background:rgba(0,0,0,.12);
-  }
-  .eng-body { padding: 12px 14px 14px; display:flex; flex-direction:column; gap:10px; flex:1; }
-  .eng-name { font-weight: 700; font-size: .98rem; }
-  .eng-loc { font-size: .82rem; color: var(--ink-soft); }
-  .eng-meta { font-size:.76rem; color:var(--ink-soft); display:flex; gap:12px; flex-wrap:wrap; }
-  .eng-meta span { display:inline-flex; align-items:center; gap:4px; }
-  .cam-btn {
-    margin-top:auto; text-align:center; text-decoration:none;
-    font-size:.82rem; font-weight:600; color:var(--accent-ink);
-    background: var(--accent); border-radius:10px; padding:9px 10px;
-    transition: filter .15s;
-  }
-  .cam-btn:hover { filter: brightness(1.08); }
-  .cam-btn.muted { background: var(--surface-2); color: var(--ink-soft); border:1px solid var(--line); }
+  .sky.loading::after { content:"Loading…"; position:absolute; inset:0; display:grid; place-items:center; color:#fff; font-size:.85rem; font-weight:600; background:rgba(0,0,0,.12); }
 
-  /* ---------- FOOTER MAPS ---------- */
-  .maps { display:grid; gap:16px; grid-template-columns: 1fr 1fr; }
-  @media (max-width: 820px){ .maps { grid-template-columns: 1fr; } }
+  .meta { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 13px; border-top:1px solid var(--line); background:var(--surface-2); }
+  .name { font-weight:700; font-size:.96rem; }
+  .city { font-size:.8rem; color:var(--ink-soft); }
+  .actions { display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
+  .tiny { font-size:.74rem; font-weight:600; padding:5px 10px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--accent); text-decoration:none; cursor:pointer; }
+  .tiny:hover { border-color:var(--accent); background:var(--bhd-blue-soft); }
+  .src-tag { font-size:.66rem; color:var(--ink-soft); border:1px solid var(--line); border-radius:999px; padding:3px 7px; }
+  .err { font-size:.78rem; color:var(--warn); }
+
+  /* FOOTER MAPS */
+  .maps { display:grid; gap:16px; grid-template-columns:1fr 1fr; }
+  @media (max-width:820px){ .maps { grid-template-columns:1fr; } }
   .map-card { background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }
   .map-card h3 { margin:0; padding:12px 16px; font-size:.86rem; text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid var(--line); background:var(--surface-2); }
   .map-card iframe { display:block; width:100%; height:300px; border:0; }
 
-  footer.foot { margin-top: 36px; text-align: center; font-size: .78rem; color: var(--ink-soft); }
-  footer.foot a { color: var(--accent); text-decoration: none; }
-
-  .err { font-size:.78rem; color:var(--warn); padding:2px 0; }
+  footer.foot { margin-top:36px; text-align:center; font-size:.78rem; color:var(--ink-soft); }
+  footer.foot a { color:var(--accent); text-decoration:none; }
 </style>
 </head>
 
@@ -251,66 +179,39 @@
     <img class="logo" alt="BlackHawk Data"
          src="https://blackhawk11.com/wp-content/uploads/2024/12/new-blue-bhd-horizontal-black-blue.png" />
     <div class="top-spacer"></div>
-    <div class="clock" id="clock" aria-live="off">
-      <span id="clock-time">--:--:--</span>
-      <span class="zone" id="clock-zone">ET</span>
-      <span class="date" id="clock-date"></span>
-    </div>
-    <button class="theme-btn" id="themeBtn" type="button" aria-pressed="false">
-      <span id="themeIcon">🌙</span><span id="themeLabel">Dark</span>
-    </button>
+    <span class="badge" id="tileCounter" title="Rendered engineer tiles">Tiles: --</span>
+    <div class="clock"><span id="clock-time">--:--:--</span><span class="zone" id="clock-zone">ET</span><span class="date" id="clock-date"></span></div>
+    <button class="theme-btn" id="themeBtn" type="button" aria-pressed="false"><span id="themeIcon">🌙</span><span id="themeLabel">Dark</span></button>
   </header>
 
-  <!-- ===================== TRAINS ===================== -->
+  <!-- TRAINS -->
   <section>
     <div class="sec-head">
-      <h2>Subway — 34 St–Penn Station</h2>
-      <span class="hint">A · C · E (IND 8th Ave) — directly below 505 8th Ave</span>
+      <h2>Subway — from 34 St–Penn Station</h2>
+      <span class="hint">A · C · E (IND 8th Ave), directly below 505 8th Ave · ETAs by time of day</span>
     </div>
-
     <div class="station-card">
       <div class="station-top">
         <div>
           <div class="station-name">34 St–Penn Station</div>
           <div class="station-sub">8th Ave &amp; W 34 St · Manhattan</div>
         </div>
-        <div class="feed-state" id="feedState"><span class="dot"></span><span id="feedLabel">Loading…</span></div>
+        <div class="feed-state sched" id="feedState"><span class="dot"></span><span id="feedLabel">Estimated</span></div>
       </div>
-
-      <div class="dirs">
-        <div class="dir">
-          <h3>Uptown / Queens</h3>
-          <div class="toward">A·C → Bronx/Inwood · E → Jamaica</div>
-          <div id="northArr"></div>
-        </div>
-        <div class="dir">
-          <h3>Downtown / Brooklyn</h3>
-          <div class="toward">A·C → Brooklyn · E → World Trade Center</div>
-          <div id="southArr"></div>
-        </div>
-      </div>
-
-      <div class="links-row">
-        <a class="chip" target="_blank" rel="noopener"
-           href="https://www.mta.info/schedules">MTA live schedules ↗</a>
-        <a class="chip" target="_blank" rel="noopener"
-           href="https://www.google.com/maps/dir/?api=1&destination=34+St+Penn+Station+8th+Ave+New+York&travelmode=transit">Google Maps transit ↗</a>
-        <a class="chip" target="_blank" rel="noopener"
-           href="https://citymapper.com/nyc">Citymapper ↗</a>
-      </div>
+      <div class="routes" id="routes"></div>
     </div>
   </section>
 
-  <!-- ===================== ENGINEER WEATHER TILES ===================== -->
+  <!-- ENGINEER CAMS / CONDITIONS -->
   <section>
     <div class="sec-head">
-      <h2>NOC Engineer Conditions</h2>
-      <span class="hint">Live sky &amp; weather · tap a tile for the nearest public webcam</span>
+      <h2>NOC Engineer Cams &amp; Conditions</h2>
+      <span class="hint">Live cams autoplay muted · others show live sky &amp; weather</span>
     </div>
     <div class="grid" id="engGrid"></div>
   </section>
 
-  <!-- ===================== FOOTER MAPS (optional) ===================== -->
+  <!-- FOOTER MAPS -->
   <section>
     <div class="sec-head"><h2>Office Area — Traffic &amp; Weather</h2></div>
     <div class="maps">
@@ -330,288 +231,275 @@
   <footer class="foot">
     BlackHawk Data — Internal Office Dashboard ·
     Weather by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0) ·
-    Webcams via <a href="https://www.windy.com/webcams" target="_blank" rel="noopener">Windy</a> ·
-    Times in US Eastern
+    Cams via YouTube / USGS / eye-n-sky · Times in US Eastern
   </footer>
 </div>
 
 <script>
 "use strict";
 
-/* =======================================================================
-   CONFIG
-   ======================================================================= */
+/* ===================== CONFIG ===================== */
+// Leave "" for the time-of-day ETA model. Set to a JSON proxy (MTAPI-style) for
+// the A/C/E Penn stop to enable LIVE arrivals (self-hosted Cloudflare Worker
+// recommended). Reserved for future upgrade.
+const MTA_PROXY = "";
 
-// Leave "" to use the safe schedule fallback. To enable LIVE arrivals,
-// point this at a JSON proxy (MTAPI-style) for the A/C/E Penn stop.
-// Recommended: self-hosted Cloudflare Worker. Must return JSON and send
-// Access-Control-Allow-Origin. Expected shape (MTAPI):
-//   { data: [ { N:[{route,time}], S:[{route,time}] } ] }
-const MTA_PROXY = ""; // e.g. "https://mta.<yoursubdomain>.workers.dev/by-id/A28"
-
-// 34 St–Penn (IND 8th Ave) GTFS stop id is A28. Lines: A, C, E.
-const SCHEDULE_HEADWAYS = [
-  // weekday-ish typical headways (minutes) by hour band — fallback only
-  { from: 0,  to: 5,  txt: "Late nights: A runs local; C does not run; E every ~20 min" },
-  { from: 5,  to: 9,  txt: "AM rush: A/C/E every ~3–6 min" },
-  { from: 9,  to: 15, txt: "Midday: A/C/E every ~6–10 min" },
-  { from: 15, to: 20, txt: "PM rush: A/C/E every ~3–6 min" },
-  { from: 20, to: 24, txt: "Evening: A/C/E every ~8–12 min" }
-];
-
-// Engineers — first name + city only. Coordinates are CITY CENTER (privacy).
-// tz = IANA zone for the local-time badge.
+// Engineers. cam: confirmed-working live source ported from original page.
+// No cam -> live Open-Meteo sky tile. Coordinates are city-center (privacy).
 const ENGINEERS = [
-  { name: "Jorge",  city: "Worth, IL",          lat: 41.6897, lon: -87.7912, tz: "America/Chicago"  },
-  { name: "Axel",   city: "Spokane, WA",        lat: 47.6588, lon: -117.4260, tz: "America/Los_Angeles" },
-  { name: "Matthew",city: "Bronx, NY",          lat: 40.8448, lon: -73.8648, tz: "America/New_York" },
-  { name: "Lauren", city: "Houston, TX",        lat: 29.7604, lon: -95.3698, tz: "America/Chicago"  },
-  { name: "Virag",  city: "Morbi, India",       lat: 22.8173, lon:  70.8378, tz: "Asia/Kolkata"     },
-  { name: "Jacob",  city: "Dallas, TX",         lat: 32.7767, lon: -96.7970, tz: "America/Chicago"  },
-  { name: "Noah",   city: "Winston-Salem, NC",  lat: 36.0999, lon: -80.2442, tz: "America/New_York" },
-  { name: "Jake",   city: "Manchester, NH",     lat: 42.9956, lon: -71.4548, tz: "America/New_York" },
-  { name: "Steve L.",city:"Denver, CO",         lat: 39.7392, lon: -104.9903, tz: "America/Denver"  },
-  { name: "Dallas", city: "Princeton, NJ",      lat: 40.3573, lon: -74.6672, tz: "America/New_York" },
-  { name: "Steven", city: "Star, ID",           lat: 43.6919, lon: -116.4951, tz: "America/Boise"   }
+  { name:"Jorge N.",  city:"Worth, IL",         lat:41.6897, lon:-87.7912,  tz:"America/Chicago" },
+  { name:"Axel H.",   city:"Spokane, WA",       lat:47.6588, lon:-117.4260, tz:"America/Los_Angeles" },
+  { name:"Matthew L.",city:"Bronx, NY",         lat:40.8448, lon:-73.8648,  tz:"America/New_York" },
+  { name:"Lauren G.", city:"Houston, TX",       lat:29.7604, lon:-95.3698,  tz:"America/Chicago",
+      cam:{ type:"youtube", url:"https://www.youtube.com/watch?v=wUQc3RoLAPs", src:"YouTube live" } },
+  { name:"Virag D.",  city:"Morbi, India",      lat:22.8173, lon:70.8378,   tz:"Asia/Kolkata" },
+  { name:"Jacob T.",  city:"Dallas, TX",        lat:32.7767, lon:-96.7970,  tz:"America/Chicago" },
+  { name:"Noah H.",   city:"Winston-Salem, NC", lat:36.0999, lon:-80.2442,  tz:"America/New_York",
+      cam:{ type:"youtube", url:"https://www.youtube.com/watch?v=a89gExUKAu4", src:"YouTube live (Triad)" } },
+  { name:"Jake F.",   city:"Manchester, NH",    lat:42.9956, lon:-71.4548,  tz:"America/New_York",
+      cam:{ type:"youtube", url:"https://www.youtube.com/watch?v=i07IVN7ZKek", src:"YouTube live" } },
+  { name:"Steve L.",  city:"Denver, CO",        lat:39.7392, lon:-104.9903, tz:"America/Denver",
+      cam:{ type:"youtube", url:"https://www.youtube.com/watch?v=E_VpviMTH9k", src:"YouTube live" } },
+  { name:"Dallas M.", city:"Princeton, NJ",     lat:40.3573, lon:-74.6672,  tz:"America/New_York",
+      cam:{ type:"snapshot", url:"https://usgs-nims-images.s3.amazonaws.com/overlay/NJ_Stony_Brook_at_Princeton/NJ_Stony_Brook_at_Princeton_newest.jpg", src:"USGS Stony Brook", minSec:15, maxSec:30 } },
+  { name:"Steven L.", city:"Star, ID",          lat:43.6919, lon:-116.4951, tz:"America/Boise",
+      cam:{ type:"snapshot", url:"https://map.eye-n-sky.net/webcam/Caldwell/Caldwell-East.jpg", src:"eye-n-sky Caldwell", minSec:15, maxSec:30 } }
 ];
 
-/* =======================================================================
-   CLOCK — America/New_York handles EST/EDT automatically
-   ======================================================================= */
-const clockTime = document.getElementById("clock-time");
-const clockZone = document.getElementById("clock-zone");
-const clockDate = document.getElementById("clock-date");
-const timeFmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York", hour12: false,
-  hour: "2-digit", minute: "2-digit", second: "2-digit"
-});
-const zoneFmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York", timeZoneName: "short"
-});
-const dateFmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York", weekday: "short", month: "short", day: "numeric"
-});
+/* ===================== CLOCK (auto EST/EDT) ===================== */
+const clockTime=document.getElementById("clock-time"),
+      clockZone=document.getElementById("clock-zone"),
+      clockDate=document.getElementById("clock-date");
+const timeFmt=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour12:false,hour:"2-digit",minute:"2-digit",second:"2-digit"});
+const zoneFmt=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",timeZoneName:"short"});
+const dateFmt=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short",month:"short",day:"numeric"});
 function tickClock(){
-  const now = new Date();
-  clockTime.textContent = timeFmt.format(now);
-  const zparts = zoneFmt.formatToParts(now);
-  const zn = zparts.find(p => p.type === "timeZoneName");
-  clockZone.textContent = zn ? zn.value : "ET";
-  clockDate.textContent = dateFmt.format(now);
+  const now=new Date();
+  clockTime.textContent=timeFmt.format(now);
+  const zn=zoneFmt.formatToParts(now).find(p=>p.type==="timeZoneName");
+  clockZone.textContent=zn?zn.value:"ET";
+  clockDate.textContent=dateFmt.format(now);
 }
-tickClock();
-setInterval(tickClock, 1000);
+tickClock(); setInterval(tickClock,1000);
 
-/* =======================================================================
-   THEME — respects OS preference, remembered in memory only (no storage API
-   in sandbox); persists via prefers-color-scheme + manual toggle this session
-   ======================================================================= */
-const root = document.documentElement;
-const themeBtn = document.getElementById("themeBtn");
-const themeIcon = document.getElementById("themeIcon");
-const themeLabel = document.getElementById("themeLabel");
+/* ===================== THEME ===================== */
+const root=document.documentElement, themeBtn=document.getElementById("themeBtn"),
+      themeIcon=document.getElementById("themeIcon"), themeLabel=document.getElementById("themeLabel");
 function applyTheme(mode){
-  root.setAttribute("data-theme", mode);
-  const dark = mode === "dark";
-  themeIcon.textContent = dark ? "☀️" : "🌙";
-  themeLabel.textContent = dark ? "Light" : "Dark";
-  themeBtn.setAttribute("aria-pressed", String(dark));
+  root.setAttribute("data-theme",mode);
+  const dark=mode==="dark";
+  themeIcon.textContent=dark?"☀️":"🌙"; themeLabel.textContent=dark?"Light":"Dark";
+  themeBtn.setAttribute("aria-pressed",String(dark));
 }
-const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-applyTheme(prefersDark ? "dark" : "light");
-themeBtn.addEventListener("click", () => {
-  applyTheme(root.getAttribute("data-theme") === "dark" ? "light" : "dark");
-});
+applyTheme((window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");
+themeBtn.addEventListener("click",()=>applyTheme(root.getAttribute("data-theme")==="dark"?"light":"dark"));
 
-/* =======================================================================
-   TRAINS
-   ======================================================================= */
-const feedState = document.getElementById("feedState");
-const feedLabel = document.getElementById("feedLabel");
-const northArr  = document.getElementById("northArr");
-const southArr  = document.getElementById("southArr");
-
-function bulletHTML(route){
-  const r = (route || "?").toUpperCase().slice(0,1);
-  return `<span class="bullet ${r}">${r}</span>`;
+/* ===================== TRAINS (time-of-day ETA model) ===================== */
+const penn=encodeURIComponent("34 St–Penn Station, New York, NY");
+const ROUTES=[
+  {name:"Grand Central–42 St", addr:"Grand Central Terminal, NYC",       base:[9,12],  peak:[11,16]},
+  {name:"Times Sq–42 St",      addr:"Times Square, NYC",                 base:[5,7],   peak:[6,9]},
+  {name:"Fulton St (FiDi)",    addr:"Fulton St Station, NYC",            base:[14,20], peak:[18,26]},
+  {name:"Atlantic Av–Barclays",addr:"Barclays Center, Brooklyn",         base:[22,30], peak:[28,38]},
+  {name:"Jamaica Center",      addr:"Jamaica Center–Parsons/Archer",     base:[38,50], peak:[45,60]}
+];
+function isPeak(dt){
+  const z=new Date(dt.toLocaleString("en-US",{timeZone:"America/New_York"}));
+  const d=z.getDay(), t=z.getHours()+z.getMinutes()/60;
+  return d>=1&&d<=5&&((t>=7&&t<10)||(t>=16&&t<19));
 }
-function minsUntil(iso){
-  const t = new Date(iso).getTime();
-  const m = Math.round((t - Date.now()) / 60000);
-  return m;
-}
-function renderArrivals(el, list){
-  if (!list || !list.length){ el.innerHTML = `<div class="sched-line">No trains reported right now.</div>`; return; }
-  el.innerHTML = list.slice(0,4).map(a => {
-    const m = minsUntil(a.time);
-    const label = m <= 0 ? "now" : m;
-    return `<div class="arrival">${bulletHTML(a.route)}
-      <span>${a.route.toUpperCase()} train</span>
-      <span class="arr-min">${label}${m>0?' <small>min</small>':''}</span></div>`;
+function etaClass(span){ if(span[1]<=15)return"good"; if(span[1]<=35)return"warn"; return"bad"; }
+function renderRoutes(){
+  const peak=isPeak(new Date());
+  const list=document.getElementById("routes");
+  list.innerHTML=ROUTES.map(r=>{
+    const span=peak?r.peak:r.base, cls=etaClass(span);
+    const url=`https://www.google.com/maps/dir/?api=1&origin=${penn}&destination=${encodeURIComponent(r.addr)}&travelmode=transit`;
+    return `<div class="route">
+      <h3>${r.name}</h3>
+      <div class="eta ${cls}"><span class="chip-band">${peak?"Peak":"Off-peak"}</span><span class="mins">${span[0]}–${span[1]} min</span></div>
+      <div class="sub">Typical transit time. Open for live, exact ETAs.</div>
+      <a class="open" target="_blank" rel="noopener" href="${url}">Open route ↗</a>
+    </div>`;
   }).join("");
 }
-function scheduleFallback(){
-  feedState.className = "feed-state sched";
-  feedLabel.textContent = "Scheduled (live feed off)";
-  const hour = Number(new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour:"2-digit",hour12:false}).format(new Date()));
-  const band = SCHEDULE_HEADWAYS.find(b => hour >= b.from && hour < b.to) || SCHEDULE_HEADWAYS[2];
-  const note = `<div class="sched-line">${band.txt}.</div>
-    <div class="sched-line">Open the MTA station page or Google Maps above for live, to-the-minute arrivals.</div>`;
-  northArr.innerHTML = note;
-  southArr.innerHTML = note;
+renderRoutes(); setInterval(renderRoutes,5*60*1000);
+
+/* ===================== YOUTUBE AUTOPLAY ENGINE (ported) ===================== */
+(function(){ const s=document.createElement("script"); s.src="https://www.youtube.com/iframe_api"; s.async=true; document.head.appendChild(s); })();
+function ytIdFromUrl(u){
+  try{
+    const url=new URL(u);
+    if(url.hostname.includes("youtube")||url.hostname.includes("youtu.be")){
+      if(url.pathname.startsWith("/watch")) return url.searchParams.get("v");
+      const m=url.pathname.match(/\/embed\/([A-Za-z0-9_\-]+)/); if(m) return m[1];
+      if(url.hostname==="youtu.be") return url.pathname.slice(1);
+      const v=url.searchParams.get("v"); if(v) return v;
+    }
+  }catch{}
+  return null;
 }
-async function loadTrains(){
-  if (!MTA_PROXY){ scheduleFallback(); return; }
-  try {
-    const res = await fetch(MTA_PROXY, { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const json = await res.json();
-    const stop = (json.data && json.data[0]) || json; // tolerate both shapes
-    const north = (stop.N || stop.north || []).filter(x => ["A","C","E"].includes((x.route||"").toUpperCase()));
-    const south = (stop.S || stop.south || []).filter(x => ["A","C","E"].includes((x.route||"").toUpperCase()));
-    feedState.className = "feed-state live";
-    feedLabel.textContent = "Live";
-    renderArrivals(northArr, north);
-    renderArrivals(southArr, south);
-  } catch (e){
-    console.warn("Train proxy unreachable, using schedule fallback:", e);
-    scheduleFallback();
+function buildVideoPlayer(el, videoId){
+  if(!window.YT||!window.YT.Player){ setTimeout(()=>buildVideoPlayer(el,videoId),150); return; }
+  const p=new YT.Player(el,{
+    videoId,
+    playerVars:{autoplay:1,mute:1,playsinline:1,rel:0,controls:1,modestbranding:1},
+    events:{
+      onReady:(e)=>{ try{ e.target.mute(); e.target.playVideo(); }catch{} },
+      onStateChange:(e)=>{
+        if(e.data===YT.PlayerState.PAUSED||e.data===YT.PlayerState.UNSTARTED||e.data===YT.PlayerState.ENDED){
+          try{ e.target.playVideo(); }catch{}
+        }
+      },
+      // New since original: explicit autoplay-blocked recovery
+      onAutoplayBlocked:(e)=>{ try{ e.target.mute(); e.target.playVideo(); }catch{} }
+    }
+  });
+  const nudge=()=>{
+    try{
+      const st=p.getPlayerState?p.getPlayerState():null;
+      if(st!==YT.PlayerState.PLAYING) p.playVideo();
+      const dur=(typeof p.getDuration==="function")?p.getDuration():0;
+      if(dur&&Number.isFinite(dur)&&dur>30) p.seekTo(dur-1,true);
+      else if(typeof p.seekTo==="function") p.seekTo(1e7,true);
+      p.mute();
+    }catch{}
+  };
+  setInterval(nudge,15000);
+  document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") nudge(); },{passive:true});
+}
+
+/* ===================== SNAPSHOT REFRESHER (ported) ===================== */
+function toETString(d){
+  try{
+    return new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour12:false,
+      month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"}).format(d)+" ET";
+  }catch{ return d.toISOString(); }
+}
+async function tryLastModified(url){
+  try{
+    const res=await fetch(url,{method:"HEAD",cache:"no-store"});
+    const lm=res.headers.get("Last-Modified");
+    if(lm){ const dt=new Date(lm); if(!isNaN(dt)) return dt; }
+  }catch{}
+  return null;
+}
+function scheduleRefresh(imgEl, baseUrl, minSec, maxSec, stampEl){
+  async function doRefresh(){
+    const full=baseUrl+(baseUrl.includes("?")?"&":"?")+"t="+Date.now();
+    let whenLabel=null;
+    const dt=await tryLastModified(baseUrl);
+    if(dt) whenLabel=toETString(dt)+" (server)";
+    imgEl.onload=()=>{ if(!whenLabel) whenLabel=toETString(new Date())+" (local)"; if(stampEl) stampEl.textContent="Updated: "+whenLabel; };
+    imgEl.onerror=()=>{ if(stampEl) stampEl.textContent="Image unavailable"; };
+    imgEl.src=full;
+    const delay=(minSec*1000)+Math.random()*((maxSec-minSec)*1000);
+    setTimeout(doRefresh,Math.round(delay));
+  }
+  doRefresh();
+}
+
+/* ===================== SKY FALLBACK (Open-Meteo) ===================== */
+const WEATHER_CODE={0:"Clear",1:"Mostly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Rime fog",
+ 51:"Light drizzle",53:"Drizzle",55:"Heavy drizzle",56:"Freezing drizzle",57:"Freezing drizzle",
+ 61:"Light rain",63:"Rain",65:"Heavy rain",66:"Freezing rain",67:"Freezing rain",71:"Light snow",
+ 73:"Snow",75:"Heavy snow",77:"Snow grains",80:"Rain showers",81:"Rain showers",82:"Violent showers",
+ 85:"Snow showers",86:"Snow showers",95:"Thunderstorm",96:"Storm w/ hail",99:"Storm w/ hail"};
+const WEATHER_ICON={0:"☀️",1:"🌤️",2:"⛅",3:"☁️",45:"🌫️",48:"🌫️",51:"🌦️",53:"🌦️",55:"🌧️",56:"🌧️",57:"🌧️",
+ 61:"🌧️",63:"🌧️",65:"🌧️",66:"🌧️",67:"🌧️",71:"🌨️",73:"🌨️",75:"❄️",77:"🌨️",80:"🌦️",81:"🌧️",82:"⛈️",
+ 85:"🌨️",86:"❄️",95:"⛈️",96:"⛈️",99:"⛈️"};
+function starsSVG(){
+  let s='<svg class="stars" viewBox="0 0 300 170" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">';
+  [[24,22],[66,48],[108,18],[156,40],[198,24],[240,54],[270,30],[48,84],[132,74],[222,90],[180,108],[90,114]]
+    .forEach(([x,y],i)=>{ const r=(i%3===0)?1.6:1; s+=`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${0.5+(i%4)*0.12}"/>`; });
+  return s+"</svg>";
+}
+function localTimeBadge(tz){ try{ return new Intl.DateTimeFormat("en-US",{timeZone:tz,hour:"2-digit",minute:"2-digit",hour12:true}).format(new Date()); }catch{ return ""; } }
+function placeCelestial(idx,isDay,sr,ss){
+  const cel=document.getElementById("cel-"+idx), sky=document.getElementById("sky-"+idx);
+  if(!cel||!sky) return;
+  const now=Date.now();
+  if(isDay){
+    sky.classList.remove("night"); cel.className="celest sun";
+    const a=new Date(sr).getTime(), b=new Date(ss).getTime();
+    const frac=Math.min(1,Math.max(0,(now-a)/Math.max(1,(b-a))));
+    cel.style.top=(86-Math.sin(frac*Math.PI)*64)+"px";
+  } else { sky.classList.add("night"); cel.className="celest moon"; cel.style.top="26px"; }
+}
+async function loadWeather(e,idx){
+  const sky=document.getElementById("sky-"+idx);
+  if(!sky) return;
+  const temp=document.getElementById("temp-"+idx), cond=document.getElementById("cond-"+idx),
+        lt=document.getElementById("lt-"+idx);
+  if(lt) lt.textContent=localTimeBadge(e.tz);
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${e.lat}&longitude=${e.lon}`
+    +`&current=temperature_2m,weather_code,wind_speed_10m,is_day&daily=sunrise,sunset`
+    +`&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=${encodeURIComponent(e.tz)}&forecast_days=1`;
+  try{
+    const res=await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("HTTP "+res.status);
+    const d=await res.json(), c=d.current||{}, code=c.weather_code??3, isDay=c.is_day===1;
+    sky.classList.remove("loading");
+    temp.textContent=(c.temperature_2m!=null)?Math.round(c.temperature_2m)+"°":"—";
+    cond.innerHTML=`${WEATHER_ICON[code]||"•"} ${WEATHER_CODE[code]||"—"}`;
+    placeCelestial(idx,isDay,d.daily?.sunrise?.[0],d.daily?.sunset?.[0]);
+  }catch(err){
+    console.warn("Weather failed",e.city,err);
+    sky.classList.remove("loading");
+    if(temp) temp.textContent="—";
+    if(cond) cond.innerHTML='<span class="err">Weather unavailable</span>';
   }
 }
-loadTrains();
-setInterval(loadTrains, 30000);
 
-/* =======================================================================
-   ENGINEER WEATHER TILES (Open-Meteo, keyless + CORS)
-   ======================================================================= */
-const WEATHER_CODE = {
-  0:"Clear", 1:"Mostly clear", 2:"Partly cloudy", 3:"Overcast",
-  45:"Fog", 48:"Rime fog", 51:"Light drizzle", 53:"Drizzle", 55:"Heavy drizzle",
-  56:"Freezing drizzle", 57:"Freezing drizzle", 61:"Light rain", 63:"Rain", 65:"Heavy rain",
-  66:"Freezing rain", 67:"Freezing rain", 71:"Light snow", 73:"Snow", 75:"Heavy snow",
-  77:"Snow grains", 80:"Rain showers", 81:"Rain showers", 82:"Violent showers",
-  85:"Snow showers", 86:"Snow showers", 95:"Thunderstorm", 96:"Storm w/ hail", 99:"Storm w/ hail"
-};
-const WEATHER_ICON = {
-  0:"☀️",1:"🌤️",2:"⛅",3:"☁️",45:"🌫️",48:"🌫️",51:"🌦️",53:"🌦️",55:"🌧️",
-  56:"🌧️",57:"🌧️",61:"🌧️",63:"🌧️",65:"🌧️",66:"🌧️",67:"🌧️",71:"🌨️",73:"🌨️",
-  75:"❄️",77:"🌨️",80:"🌦️",81:"🌧️",82:"⛈️",85:"🌨️",86:"❄️",95:"⛈️",96:"⛈️",99:"⛈️"
-};
-
-const grid = document.getElementById("engGrid");
-
-function camUrl(e){
-  // Deep-link to Windy's public webcam map at the engineer's city.
-  // Windy auto-selects the nearest public cam; if none, shows the sky/weather view.
-  return `https://www.windy.com/webcams?${e.lat},${e.lon},9`;
+/* ===================== TILE BUILDERS ===================== */
+const grid=document.getElementById("engGrid");
+function metaHTML(e, extraActions){
+  return `<div class="meta">
+    <div><div class="name">${e.name}</div><div class="city">${e.city}</div></div>
+    <div class="actions">${extraActions||""}</div>
+  </div>`;
 }
-function starsSVG(){
-  let s = '<svg class="stars" viewBox="0 0 240 124" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">';
-  const pts = [[20,18],[55,40],[90,15],[130,33],[165,20],[200,45],[225,25],[40,70],[110,62],[185,75],[150,90],[75,95]];
-  pts.forEach(([x,y],i)=>{ const r=(i%3===0)?1.4:0.9; s+=`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" opacity="${0.5+(i%4)*0.12}"/>`; });
-  return s + '</svg>';
-}
-
-function buildTile(e, idx){
-  const el = document.createElement("div");
-  el.className = "eng";
-  el.innerHTML = `
-    <div class="sky loading" id="sky-${idx}">
-      ${starsSVG()}
-      <div class="celest sun" id="cel-${idx}" style="top:40px"></div>
-      <div class="localtime" id="lt-${idx}"></div>
-      <div class="temp" id="temp-${idx}"></div>
-      <div class="cond" id="cond-${idx}"></div>
-    </div>
-    <div class="eng-body">
-      <div>
-        <div class="eng-name">${e.name}</div>
-        <div class="eng-loc">${e.city}</div>
-      </div>
-      <div class="eng-meta" id="meta-${idx}"></div>
-      <a class="cam-btn" target="_blank" rel="noopener" href="${camUrl(e)}">View nearest webcam ↗</a>
-    </div>`;
-  grid.appendChild(el);
+function buildTile(e,idx){
+  const el=document.createElement("article"); el.className="eng";
+  if(e.cam && e.cam.type==="youtube"){
+    const pid="yt_"+idx;
+    el.innerHTML=`<div class="media"><div id="${pid}"></div></div>`
+      + metaHTML(e, `<span class="src-tag">${e.cam.src}</span>`
+                  + `<a class="tiny" target="_blank" rel="noopener" href="${e.cam.url}">Open ↗</a>`);
+    grid.appendChild(el);
+    const id=ytIdFromUrl(e.cam.url);
+    if(id) buildVideoPlayer(document.getElementById(pid),id);
+    else document.getElementById(pid).innerHTML='<div class="err" style="padding:10px">Bad YouTube URL</div>';
+  } else if(e.cam && e.cam.type==="snapshot"){
+    el.innerHTML=`<div class="media"><img alt="${e.city} live snapshot" referrerpolicy="no-referrer" /><div class="stamp" id="stamp-${idx}">Updated: …</div></div>`
+      + metaHTML(e, `<span class="src-tag">${e.cam.src}</span>`
+                  + `<a class="tiny" target="_blank" rel="noopener" href="${e.cam.url}">Open ↗</a>`);
+    grid.appendChild(el);
+    const img=el.querySelector("img"), stamp=document.getElementById("stamp-"+idx);
+    scheduleRefresh(img,e.cam.url,e.cam.minSec||15,e.cam.maxSec||30,stamp);
+  } else {
+    // Open-Meteo sky fallback
+    el.innerHTML=`<div class="sky loading" id="sky-${idx}">${starsSVG()}
+        <div class="celest sun" id="cel-${idx}" style="top:40px"></div>
+        <div class="localtime" id="lt-${idx}"></div>
+        <div class="temp" id="temp-${idx}"></div>
+        <div class="cond" id="cond-${idx}"></div></div>`
+      + metaHTML(e, `<span class="src-tag">live sky</span>`
+                  + `<a class="tiny" target="_blank" rel="noopener" href="https://www.windy.com/webcams?${e.lat},${e.lon},9">Nearest cam ↗</a>`);
+    grid.appendChild(el);
+    loadWeather(e,idx);
+  }
 }
 ENGINEERS.forEach(buildTile);
 
-function localTimeBadge(tz){
-  try {
-    return new Intl.DateTimeFormat("en-US",{timeZone:tz,hour:"2-digit",minute:"2-digit",hour12:true}).format(new Date());
-  } catch(_) { return ""; }
-}
+/* refresh: sky weather every 10 min, local-time badges every min */
+setInterval(()=>ENGINEERS.forEach((e,idx)=>{ if(!e.cam) loadWeather(e,idx); }),600000);
+setInterval(()=>ENGINEERS.forEach((e,idx)=>{ const lt=document.getElementById("lt-"+idx); if(lt) lt.textContent=localTimeBadge(e.tz); }),60000);
 
-// Place the sun/moon vertically: midday = high, sunrise/sunset = low, night = below.
-function placeCelestial(idx, isDay, sunriseISO, sunsetISO, tz){
-  const cel = document.getElementById("cel-"+idx);
-  const sky = document.getElementById("sky-"+idx);
-  if (!cel || !sky) return;
-  const now = Date.now();
-  if (isDay){
-    sky.classList.remove("night");
-    cel.className = "celest sun";
-    const sr = new Date(sunriseISO).getTime(), ss = new Date(sunsetISO).getTime();
-    const frac = Math.min(1, Math.max(0, (now - sr) / Math.max(1,(ss - sr)))); // 0..1
-    const arc = Math.sin(frac * Math.PI); // 0 at horizon, 1 at noon
-    const top = 86 - arc * 64;            // 86px (low) -> 22px (high)
-    cel.style.top = top + "px";
-  } else {
-    sky.classList.add("night");
-    cel.className = "celest moon";
-    cel.style.top = "26px";
-  }
-}
-
-async function loadWeather(e, idx){
-  const sky  = document.getElementById("sky-"+idx);
-  const temp = document.getElementById("temp-"+idx);
-  const cond = document.getElementById("cond-"+idx);
-  const meta = document.getElementById("meta-"+idx);
-  const lt   = document.getElementById("lt-"+idx);
-  if (lt) lt.textContent = localTimeBadge(e.tz);
-
-  const url = `https://api.open-meteo.com/v1/forecast`
-    + `?latitude=${e.lat}&longitude=${e.lon}`
-    + `&current=temperature_2m,weather_code,wind_speed_10m,is_day`
-    + `&daily=sunrise,sunset`
-    + `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=${encodeURIComponent(e.tz)}&forecast_days=1`;
-
-  try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const d = await res.json();
-    const c = d.current || {};
-    const code = c.weather_code ?? 3;
-    const isDay = (c.is_day === 1);
-    sky.classList.remove("loading");
-    temp.textContent = (c.temperature_2m != null) ? Math.round(c.temperature_2m) + "°" : "—";
-    cond.innerHTML = `${WEATHER_ICON[code]||"•"} ${WEATHER_CODE[code]||"—"}`;
-    meta.innerHTML =
-      `<span>💨 ${c.wind_speed_10m != null ? Math.round(c.wind_speed_10m)+" mph" : "—"}</span>`
-      + `<span>${isDay ? "🌞 Daytime" : "🌙 Night"}</span>`;
-    const sr = d.daily && d.daily.sunrise && d.daily.sunrise[0];
-    const ss = d.daily && d.daily.sunset && d.daily.sunset[0];
-    placeCelestial(idx, isDay, sr, ss, e.tz);
-  } catch (err){
-    console.warn("Weather failed for", e.city, err);
-    sky.classList.remove("loading");
-    temp.textContent = "—";
-    cond.innerHTML = `<span class="err">Weather unavailable</span>`;
-    meta.innerHTML = `<span>Tap the webcam button for live conditions ↗</span>`;
-  }
-}
-function refreshAllWeather(){
-  ENGINEERS.forEach((e, idx) => loadWeather(e, idx));
-}
-refreshAllWeather();
-setInterval(() => {
-  // refresh local-time badges every minute, full weather every 10 minutes
-  ENGINEERS.forEach((e, idx) => {
-    const lt = document.getElementById("lt-"+idx);
-    if (lt) lt.textContent = localTimeBadge(e.tz);
-  });
-}, 60000);
-setInterval(refreshAllWeather, 600000);
+/* tile counter */
+const counterEl=document.getElementById("tileCounter");
+function updateCounter(){ counterEl.textContent="Tiles: "+grid.childElementCount; }
+updateCounter();
+new MutationObserver(updateCounter).observe(grid,{childList:true});
 </script>
 </body>
 </html>

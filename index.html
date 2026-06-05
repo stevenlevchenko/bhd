@@ -251,9 +251,12 @@ const MTA_PROXY = "";
 // Engineers. cam: confirmed-working live source ported from original page.
 // No cam -> live Open-Meteo sky tile. Coordinates are city-center (privacy).
 const ENGINEERS = [
-  { name:"Jorge N.",  city:"Worth, IL",         lat:41.6897, lon:-87.7912,  tz:"America/Chicago" },
-  { name:"Axel H.",   city:"Spokane, WA",       lat:47.6588, lon:-117.4260, tz:"America/Los_Angeles" },
-  { name:"Matthew L.",city:"Bronx, NY",         lat:40.8448, lon:-73.8648,  tz:"America/New_York" },
+  { name:"Jorge N.",  city:"Worth, IL",         lat:41.6897, lon:-87.7912,  tz:"America/Chicago",
+      cam:{ type:"snapshot", url:"https://cctv.travelmidwest.com/snapshots/IL-IDOTD1_1_Cook_SEB_I-290_4187072_-8789423_1_NONE.jpg", src:"IDOT I-290 (Cook)", minSec:30, maxSec:60 } },
+  { name:"Axel H.",   city:"Spokane, WA",       lat:47.6588, lon:-117.4260, tz:"America/Los_Angeles",
+      cam:{ type:"snapshot", url:"https://images.srtmc.org/d5f828ac-79c6-4ca6-a64e-45759dd84c2e.jpg", src:"SRTMC Spokane", minSec:30, maxSec:60 } },
+  { name:"Matthew L.",city:"Bronx, NY",         lat:40.8448, lon:-73.8648,  tz:"America/New_York",
+      cam:{ type:"snapshot", url:"https://511ny.org/map/Cctv/5715", src:"511NY Bronx", minSec:30, maxSec:60 } },
   { name:"Lauren G.", city:"Houston, TX",       lat:29.7604, lon:-95.3698,  tz:"America/Chicago",
       cam:{ type:"youtube", url:"https://www.youtube.com/watch?v=wUQc3RoLAPs", src:"YouTube live" } },
   { name:"Virag D.",  city:"Morbi, India",      lat:22.8173, lon:70.8378,   tz:"Asia/Kolkata" },
